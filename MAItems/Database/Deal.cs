@@ -25,5 +25,8 @@
         public string TransferReason { get; set; } = string.Empty;
         public string TransferConditions { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
+
+        // 追加: 添付資料タブの全体概況
+        public string AttachmentsSummary { get; set; } = string.Empty;
     }
 }

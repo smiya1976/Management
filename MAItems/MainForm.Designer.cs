@@ -10,8 +10,8 @@
         private System.Windows.Forms.Button btnClear;
         private System.Windows.Forms.Button btnDetail;
         private System.Windows.Forms.Button btnAdd;
-        private System.Windows.Forms.Button btnImport;
-        private System.Windows.Forms.Button btnExport;
+        private System.Windows.Forms.Button btnDataSync;
+
         private System.Windows.Forms.Button btnToggleNumeric;
         private System.Windows.Forms.Button btnDelete;
         private System.Windows.Forms.DataGridView dgvData;
@@ -32,8 +32,7 @@
             this.btnClear = new System.Windows.Forms.Button();
             this.btnDetail = new System.Windows.Forms.Button();
             this.btnAdd = new System.Windows.Forms.Button();
-            this.btnImport = new System.Windows.Forms.Button();
-            this.btnExport = new System.Windows.Forms.Button();
+            this.btnDataSync = new System.Windows.Forms.Button();
             this.btnToggleNumeric = new System.Windows.Forms.Button();
             this.btnDelete = new System.Windows.Forms.Button();
             this.dgvData = new System.Windows.Forms.DataGridView();
@@ -112,77 +111,75 @@
             // btnSearch
             this.btnSearch.Text = "🔍 検索";
             this.btnSearch.Location = new System.Drawing.Point(292, 13);
-            this.btnSearch.Size = new System.Drawing.Size(80, 28);
+            this.btnSearch.Size = new System.Drawing.Size(100, 28); // 80 -> 100
             this.btnSearch.Anchor = anchorTopLeft;
             this.btnSearch.Click +=
                 new System.EventHandler(this.btnSearch_Click);
 
             // btnClear
             this.btnClear.Text = "クリア";
-            this.btnClear.Location = new System.Drawing.Point(382, 13);
-            this.btnClear.Size = new System.Drawing.Size(70, 28);
+            this.btnClear.Location = new System.Drawing.Point(402, 13); // 382 -> 402
+            this.btnClear.Size = new System.Drawing.Size(80, 28); // 70 -> 80
             this.btnClear.Anchor = anchorTopLeft;
             this.btnClear.Click +=
                 new System.EventHandler(this.btnClear_Click);
 
             // btnDetail
             this.btnDetail.Text = "📋 案件詳細";
-            this.btnDetail.Location = new System.Drawing.Point(462, 13);
-            this.btnDetail.Size = new System.Drawing.Size(100, 28);
+            this.btnDetail.Location = new System.Drawing.Point(492, 13);
+            this.btnDetail.Size = new System.Drawing.Size(120, 28);
             this.btnDetail.BackColor = System.Drawing.Color.LightYellow;
             this.btnDetail.Enabled = false;
             this.btnDetail.Anchor = anchorTopLeft;
-            this.btnDetail.Click +=
-                new System.EventHandler(this.btnDetail_Click);
+            this.btnDetail.Click += new System.EventHandler(this.btnDetail_Click);
 
             // btnAdd
             this.btnAdd.Text = "➕ 新規追加";
-            this.btnAdd.Location = new System.Drawing.Point(572, 13);
-            this.btnAdd.Size = new System.Drawing.Size(100, 28);
+            this.btnAdd.Location = new System.Drawing.Point(622, 13);
+            this.btnAdd.Size = new System.Drawing.Size(120, 28);
             this.btnAdd.BackColor = System.Drawing.Color.LightGreen;
             this.btnAdd.Anchor = anchorTopLeft;
-            this.btnAdd.Click +=
-                new System.EventHandler(this.btnAdd_Click);
+            this.btnAdd.Click += new System.EventHandler(this.btnAdd_Click);
 
-            // btnImport
-            this.btnImport.Text = "📂 インポート";
-            this.btnImport.Location = new System.Drawing.Point(682, 13);
-            this.btnImport.Size = new System.Drawing.Size(100, 28);
-            this.btnImport.BackColor = System.Drawing.Color.LightSteelBlue;
-            this.btnImport.Anchor = anchorTopLeft;
-            this.btnImport.Click +=
-                new System.EventHandler(this.btnImport_Click);
+            // 🛠 追加：インポート・エクスポートを統合したデータ管理ボタンを配置
+            this.btnDataSync = new System.Windows.Forms.Button();
+            this.btnDataSync.Text = "⚙ データ管理";
+            this.btnDataSync.Location = new System.Drawing.Point(752, 13);
+            this.btnDataSync.Size = new System.Drawing.Size(140, 28);
+            this.btnDataSync.BackColor = System.Drawing.Color.LightGray;
+            this.btnDataSync.Anchor = anchorTopLeft;
+            this.btnDataSync.Click += new System.EventHandler(this.btnDataSync_Click);
 
-            // btnExport
-            this.btnExport.Text = "📤 エクスポート";
-            this.btnExport.Location = new System.Drawing.Point(792, 13);
-            this.btnExport.Size = new System.Drawing.Size(110, 28);
-            this.btnExport.BackColor =
-                System.Drawing.Color.LightGoldenrodYellow;
-            this.btnExport.Anchor = anchorTopLeft;
-            this.btnExport.Click +=
-                new System.EventHandler(this.btnExport_Click);
-
-            // btnToggleNumeric
+            // btnToggleNumeric (位置をずらして再調整)
             this.btnToggleNumeric.Text = "🔢 数値モード";
-            this.btnToggleNumeric.Location =
-                new System.Drawing.Point(912, 13);
-            this.btnToggleNumeric.Size =
-                new System.Drawing.Size(110, 28);
-            this.btnToggleNumeric.BackColor =
-                System.Drawing.Color.LightCyan;
+            this.btnToggleNumeric.Location = new System.Drawing.Point(902, 13); // 1022 -> 902
+            this.btnToggleNumeric.Size = new System.Drawing.Size(130, 28);
+            this.btnToggleNumeric.BackColor = System.Drawing.Color.LightCyan;
             this.btnToggleNumeric.Anchor = anchorTopLeft;
-            this.btnToggleNumeric.Click +=
-                new System.EventHandler(this.btnToggleNumeric_Click);
+            this.btnToggleNumeric.Click += new System.EventHandler(this.btnToggleNumeric_Click);
 
-            // btnDelete（右上に固定）
+            // btnDelete (右上に固定)
             this.btnDelete.Text = "🗑 削除";
-            this.btnDelete.Location = new System.Drawing.Point(1032, 13);
-            this.btnDelete.Size = new System.Drawing.Size(88, 28);
+            this.btnDelete.Location = new System.Drawing.Point(1160, 13);
+            this.btnDelete.Size = new System.Drawing.Size(96, 28);
             this.btnDelete.BackColor = System.Drawing.Color.LightCoral;
-            this.btnDelete.Anchor = anchorTopRight; // ✅ 右上固定
-            this.btnDelete.Click +=
-                new System.EventHandler(this.btnDelete_Click);
+            this.btnDelete.Anchor = anchorTopRight; 
+            this.btnDelete.Click += new System.EventHandler(this.btnDelete_Click);
+
+            // フォームへの追加配列に btnDataSync を反映させ、古い btnImport/btnExport は除去します
+            this.Controls.AddRange(new System.Windows.Forms.Control[]
+            {
+                this.lblSearch,    this.txtSearch,
+                this.btnSearch,    this.btnClear,
+                this.btnDetail,    this.btnAdd,
+                this.btnDataSync,  this.btnToggleNumeric, this.btnDelete, // ← btnDataSync に差替え
+                this.dgvData,
+                this.lblPageSize,  this.cmbPageSize,
+                this.btnFirstPage, this.btnPrevPage,
+                this.lblPageInfo,
+                this.btnNextPage,  this.btnLastPage,
+                this.lblStatus,
+            });
 
             // ── DataGridView（上下左右に伸縮） ────────────
             this.dgvData.Location =
@@ -288,7 +285,7 @@
                 this.lblSearch,    this.txtSearch,
                 this.btnSearch,    this.btnClear,
                 this.btnDetail,    this.btnAdd,
-                this.btnImport,    this.btnExport,
+                this.btnDataSync,
                 this.btnToggleNumeric, this.btnDelete,
                 this.dgvData,
                 this.lblPageSize,  this.cmbPageSize,

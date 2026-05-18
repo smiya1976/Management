@@ -426,85 +426,19 @@ namespace MAItems
             }
         }
 
-        private void btnImport_Click(object sender, EventArgs e)
+        // ── 追加: データ管理画面の呼び出しイベント ──
+        private void btnDataSync_Click(object sender, EventArgs e)
         {
-            using var dlg = new OpenFileDialog
+            using var syncForm = new DataSyncForm(_db);
+
+            // データ管理画面でインポートや復元が実行された場合は、
+            // ダイアログが閉じられた後にメイン画面の一覧をリフレッシュする
+            if (syncForm.ShowDialog(this) == DialogResult.OK)
             {
-                Title = "CSVファイルを選択",
-                Filter = "CSVファイル (*.csv)|*.csv" +
-                         "|すべてのファイル (*.*)|*.*",
-            };
-
-            if (dlg.ShowDialog() != DialogResult.OK) return;
-
-            try
-            {
-                var (added, skipped) = _db.ImportFromCsv(dlg.FileName);
-                LoadData();
-                SetStatus(
-                    $"✔ インポート完了：{added} 件追加、" +
-                    $"{skipped} 件スキップ（重複）");
-            }
-            catch (Exception ex)
-            {
-                SetStatus($"❌ インポートエラー: {ex.Message}",
-                    isError: true);
-            }
-        }
-
-        private void btnExport_Click(object sender, EventArgs e)
-        {
-            // エクスポートは全件対象（ページングに関係なく）
-            var exportData = _isNumericMode ? null : _allDeals;
-
-            if (exportData == null || exportData.Count == 0)
-            {
-                SetStatus("⚠ エクスポートするデータがありません",
-                    isError: true);
-                return;
-            }
-
-            string defaultFileName =
-                $"MA案件_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
-
-            using var dlg = new SaveFileDialog
-            {
-                Title = "CSVファイルとして保存",
-                Filter = "CSVファイル (*.csv)|*.csv" +
-                                  "|すべてのファイル (*.*)|*.*",
-                FileName = defaultFileName,
-                DefaultExt = "csv",
-                OverwritePrompt = true,
-            };
-
-            if (dlg.ShowDialog() != DialogResult.OK) return;
-
-            try
-            {
-                _db.ExportToCsv(dlg.FileName, exportData);
-                SetStatus(
-                    $"✔ {exportData.Count} 件をエクスポートしました" +
-                    $" → {dlg.FileName}");
-
-                var open = MessageBox.Show(
-                    "保存先フォルダを開きますか？",
-                    "エクスポート完了",
-                    MessageBoxButtons.YesNo,
-                    MessageBoxIcon.Information);
-
-                if (open == DialogResult.Yes)
-                {
-                    string? folder =
-                        System.IO.Path.GetDirectoryName(dlg.FileName);
-                    if (folder != null)
-                        System.Diagnostics.Process.Start(
-                            "explorer.exe", folder);
-                }
-            }
-            catch (Exception ex)
-            {
-                SetStatus($"❌ エクスポートエラー: {ex.Message}",
-                    isError: true);
+                if (_isNumericMode)
+                    LoadDataNumeric(txtSearch.Text.Trim());
+                else
+                    LoadData(txtSearch.Text.Trim());
             }
         }
 
@@ -523,10 +457,9 @@ namespace MAItems
                     btnToggleNumeric.BackColor =
                         System.Drawing.Color.LightSalmon;
                     btnAdd.Enabled = false;
-                    btnImport.Enabled = false;
                     btnDelete.Enabled = false;
                     btnDetail.Enabled = false;
-                    btnExport.Enabled = false;
+                    btnDataSync.Enabled = false;
 
                     SetStatus("🔢 数値モードに切り替えました");
                 }
@@ -546,9 +479,8 @@ namespace MAItems
                 btnToggleNumeric.BackColor =
                     System.Drawing.Color.LightCyan;
                 btnAdd.Enabled = true;
-                btnImport.Enabled = true;
                 btnDelete.Enabled = true;
-                btnExport.Enabled = true;
+                btnDataSync.Enabled = true;
 
                 SetStatus("📋 通常モードに戻りました");
             }
