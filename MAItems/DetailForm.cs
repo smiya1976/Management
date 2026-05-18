@@ -12,10 +12,9 @@ namespace MAItems
     public partial class DetailForm : Form
     {
         #region メンバ変数
-
-        private readonly DatabaseHelper _db;
-
-        // 編集対象の案件データ（前後のレコード移動で入れ替わるため readonly を外しています）
+        private readonly DealRepository _dealRepo;
+        private readonly FinancialRepository _financialRepo;
+        private readonly AttachmentRepository _attachmentRepo;
         private Deal _deal;
 
         // 各タブで管理する拡張データ
@@ -31,17 +30,17 @@ namespace MAItems
 
         #region コンストラクタ・初期化
 
-        public DetailForm(Deal deal, DatabaseHelper db)
+        public DetailForm(Deal deal, DatabaseContext context)
         {
             InitializeComponent();
-
             _deal = deal;
-            _db = db;
 
-            // 財務ハイライトタブのグリッド初期構築
+            // それぞれの専門リポジトリを生成
+            _dealRepo = new DealRepository(context);
+            _financialRepo = new FinancialRepository(context);
+            _attachmentRepo = new AttachmentRepository(context);
+
             BuildFinancialGrid();
-
-            // データの読み込みと画面への反映
             LoadAll();
         }
 
@@ -67,7 +66,7 @@ namespace MAItems
         /// </summary>
         private void UpdateNavigationButtons()
         {
-            var allDeals = _db.GetAllDeals();
+            var allDeals = _dealRepo.GetAllDeals();
             int idx = allDeals.FindIndex(d => d.Id == _deal.Id);
 
             btnPrev.Enabled = (idx > 0);
@@ -98,7 +97,7 @@ namespace MAItems
                 return;
             }
 
-            var allDeals = _db.GetAllDeals();
+            var allDeals = _dealRepo.GetAllDeals();
             int idx = allDeals.FindIndex(d => d.Id == _deal.Id);
             if (idx == -1) return;
 
@@ -123,10 +122,10 @@ namespace MAItems
                 if (confirm == DialogResult.Yes)
                 {
                     // データベースに空の新規案件を追加してIDを取得
-                    long newId = _db.AddEmptyDeal();
+                    long newId = _dealRepo.AddEmptyDeal();
 
                     // 追加した新しい案件データを取得して入れ替える
-                    var newDeal = _db.GetAllDeals().Find(d => d.Id == newId);
+                    var newDeal = _dealRepo.GetAllDeals().Find(d => d.Id == newId);
                     if (newDeal != null)
                     {
                         _deal = newDeal;
@@ -152,22 +151,22 @@ namespace MAItems
                 // Tab1, Tab5: 基本情報と添付資料の全体備考
                 FormToDeal();
                 FormToAttachments();
-                _db.UpdateDeal(_deal);
+                _dealRepo.UpdateDeal(_deal);
 
                 // Tab2: 会社基礎情報
                 FormToProfile();
-                _db.UpsertCompanyProfile(_profile);
+                _financialRepo.UpsertCompanyProfile(_profile);
 
                 // Tab3: 財務ハイライト
                 var highlights = GridToHighlights();
                 foreach (var hl in highlights)
                 {
-                    _db.UpsertFinancialHighlight(hl);
+                    _financialRepo.UpsertFinancialHighlight(hl);
                 }
 
                 // Tab4: 株式価値試算
                 FormToValuation();
-                _db.UpsertValuationData(_valuation);
+                _financialRepo.UpsertValuationData(_valuation);
 
                 // 親フォームへ通知
                 SaveCompleted?.Invoke(this, EventArgs.Empty);
@@ -266,7 +265,7 @@ namespace MAItems
         /// </summary>
         private void LoadTab2()
         {
-            var p = _db.GetCompanyProfile(_deal.Id) ?? new CompanyProfile { DealId = _deal.Id };
+            var p = _financialRepo.GetCompanyProfile(_deal.Id) ?? new CompanyProfile { DealId = _deal.Id };
             _profile = p;
 
             txtCpCompanyName.Text = p.CompanyName;
@@ -394,7 +393,7 @@ namespace MAItems
 
         private void LoadTab3()
         {
-            _highlights = _db.GetFinancialHighlights(_deal.Id);
+            _highlights = _financialRepo.GetFinancialHighlights(_deal.Id);
 
             string[] colNames = { "col_actual_1", "col_actual_2", "col_actual_3", "col_forecast_1", "col_forecast_2", "col_forecast_3" };
             string[] periodTypes = { "actual", "actual", "actual", "forecast", "forecast", "forecast" };
@@ -549,7 +548,7 @@ namespace MAItems
 
         private void LoadTab4()
         {
-            var v = _db.GetValuationData(_deal.Id) ?? new ValuationData { DealId = _deal.Id };
+            var v = _financialRepo.GetValuationData(_deal.Id) ?? new ValuationData { DealId = _deal.Id };
             _valuation = v;
 
             txtValNetAsset.Text = N(v.NetAssetValue);
@@ -708,7 +707,7 @@ namespace MAItems
         private void LoadTab5()
         {
             txtAttachmentsSummary.Text = _deal.AttachmentsSummary;
-            _attachments = _db.GetAttachments(_deal.Id);
+            _attachments = _attachmentRepo.GetAttachments(_deal.Id);
             dgvAttachments.DataSource = new BindingList<Attachment>(_attachments);
 
             // イベントの多重登録を防ぐために一度外す
@@ -731,7 +730,7 @@ namespace MAItems
             foreach (var att in _attachments)
             {
                 // グリッド内で編集した Description（ファイル備考）を保存
-                _db.SaveAttachment(att);
+                _attachmentRepo.SaveAttachment(att);
             }
         }
 
@@ -760,7 +759,7 @@ namespace MAItems
                 {
                     File.Copy(file, destPath, overwrite: true);
                     var att = new Attachment { DealId = _deal.Id, FileName = fileName, FilePath = destPath };
-                    _db.SaveAttachment(att);
+                    _attachmentRepo.SaveAttachment(att);
                 }
                 catch (Exception ex)
                 {
@@ -807,7 +806,7 @@ namespace MAItems
                         {
                             File.Delete(att.FilePath);
                         }
-                        _db.DeleteAttachment(att.Id);
+                        _attachmentRepo.DeleteAttachment(att.Id);
 
                         LoadTab5(); // グリッドを再読込
                         SetStatus($"✔ ファイル '{att.FileName}' を削除しました", isError: false);

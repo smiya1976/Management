@@ -9,7 +9,8 @@ namespace MAItems
 {
     public partial class MainForm : Form
     {
-        private readonly DatabaseHelper _db = new DatabaseHelper();
+        private readonly DatabaseContext _context;
+        private readonly DealRepository _db;
         private string _cellValueBeforeEdit = string.Empty;
         private bool _isNumericMode = false;
 
@@ -27,7 +28,11 @@ namespace MAItems
         public MainForm()
         {
             InitializeComponent();
-            InitializePageSizeCombo();
+
+            // クラスを役割ごとに初期化
+            _context = new DatabaseContext();
+            _db = new DealRepository(_context); // _dbの中身を差し替える
+
             SetupGrid();
             LoadData();
         }
@@ -424,7 +429,7 @@ namespace MAItems
                 return;
             }
 
-            var detailForm = new DetailForm(deal, _db);
+            var detailForm = new DetailForm(deal, _context);
             detailForm.SaveCompleted += (s, ev)
                 => LoadData(txtSearch.Text.Trim());
             detailForm.ShowDialog(this);
@@ -465,16 +470,12 @@ namespace MAItems
         // ── 追加: データ管理画面の呼び出しイベント ──
         private void btnDataSync_Click(object sender, EventArgs e)
         {
-            using var syncForm = new DataSyncForm(_db);
-
-            // データ管理画面でインポートや復元が実行された場合は、
-            // ダイアログが閉じられた後にメイン画面の一覧をリフレッシュする
+            // コンテキストをDataSyncFormに渡す
+            using var syncForm = new DataSyncForm(_context);
             if (syncForm.ShowDialog(this) == DialogResult.OK)
             {
-                if (_isNumericMode)
-                    LoadDataNumeric(txtSearch.Text.Trim());
-                else
-                    LoadData(txtSearch.Text.Trim());
+                if (_isNumericMode) LoadDataNumeric(txtSearch.Text.Trim());
+                else LoadData(txtSearch.Text.Trim());
             }
         }
 
