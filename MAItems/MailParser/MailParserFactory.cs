@@ -14,6 +14,7 @@ namespace MAItems.MailParser
             new List<IMailParser>
         {
             new Parsers.MACapitalParser(),
+            new Parsers.MASoukenParser(),
             // 将来追加例：
             // new Parsers.MitsubishiUFJParser(),
             // new Parsers.MAResearchParser(),
