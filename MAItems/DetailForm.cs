@@ -71,7 +71,8 @@ namespace MAItems
             int idx = allDeals.FindIndex(d => d.Id == _deal.Id);
 
             btnPrev.Enabled = (idx > 0);
-            btnNext.Enabled = (idx >= 0 && idx < allDeals.Count - 1);
+
+            btnNext.Enabled = true;
         }
 
         private void btnPrev_Click(object? sender, EventArgs e)
@@ -102,12 +103,37 @@ namespace MAItems
             if (idx == -1) return;
 
             int newIdx = idx + direction;
+
             if (newIdx >= 0 && newIdx < allDeals.Count)
             {
                 // 新しい案件に入れ替えて全体を再読み込み
                 _deal = allDeals[newIdx];
                 LoadAll();
                 SetStatus($"✔ 変更を保存し、案件 ID: {_deal.Id} を読み込みました", isError: false);
+            }
+            else if (newIdx == allDeals.Count)
+            {
+                // 最後のレコードからさらに「次へ」移動しようとした場合
+                var confirm = MessageBox.Show(
+                    "最後の案件です。新しく案件を追加しますか？",
+                    "新規追加の確認",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Question);
+
+                if (confirm == DialogResult.Yes)
+                {
+                    // データベースに空の新規案件を追加してIDを取得
+                    long newId = _db.AddEmptyDeal();
+
+                    // 追加した新しい案件データを取得して入れ替える
+                    var newDeal = _db.GetAllDeals().Find(d => d.Id == newId);
+                    if (newDeal != null)
+                    {
+                        _deal = newDeal;
+                        LoadAll();
+                        SetStatus($"✔ 新規案件（ID: {_deal.Id}）を追加しました", isError: false);
+                    }
+                }
             }
         }
 

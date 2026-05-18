@@ -77,7 +77,7 @@ namespace MAItems
 
             // ── フォーム設定 ──
             this.Text = "⚙ データ管理（インポート・エクスポート・バックアップ）";
-            this.Size = new System.Drawing.Size(640, 580);
+            this.Size = new System.Drawing.Size(640, 620); // 高さ 580 -> 620 に拡大
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
@@ -92,10 +92,7 @@ namespace MAItems
             this.chkUseDate.Location = new System.Drawing.Point(16, 24);
             this.chkUseDate.Size = new System.Drawing.Size(150, 20);
             this.chkUseDate.Checked = false;
-            this.chkUseDate.CheckedChanged += (s, e) => {
-                dtpFrom.Enabled = chkUseDate.Checked;
-                dtpTo.Enabled = chkUseDate.Checked;
-            };
+            this.chkUseDate.CheckedChanged += new System.EventHandler(this.chkUseDate_CheckedChanged);
 
             this.dtpFrom.Format = DateTimePickerFormat.Short;
             this.dtpFrom.Location = new System.Drawing.Point(16, 48);
@@ -141,7 +138,7 @@ namespace MAItems
             // ── 3. 環境丸ごとZIPバックアップ・復元 ──
             this.grpBackup.Text = "他PCへのデータ移行・完全バックアップ (推奨)";
             this.grpBackup.Location = new System.Drawing.Point(16, 255);
-            this.grpBackup.Size = new System.Drawing.Size(592, 115);
+            this.grpBackup.Size = new System.Drawing.Size(592, 125); // 高さ 115 -> 125 に拡大
 
             this.btnBackupZip.Text = "📦 まるごと丸ごとZIPバックアップ";
             this.btnBackupZip.Location = new System.Drawing.Point(16, 28);
@@ -155,17 +152,18 @@ namespace MAItems
             this.btnRestoreZip.BackColor = System.Drawing.Color.MistyRose;
             this.btnRestoreZip.Click += new System.EventHandler(this.btnRestoreZip_Click);
 
-            this.lblBackupNote.Text = "※注意: 復元を行うと、現在のアプリ内データ及び保管ファイルは全てバックアップ時点の状態に上書きされます。添付ファイルの実体も含めて完全移行が可能です。";
+            // 改行を追加し、高さを拡大
+            this.lblBackupNote.Text = "※注意: 復元を行うと、現在のアプリ内データ及び保管ファイルは全てバックアップ時点の状態に上書きされます。\n添付ファイルの実体も含めて完全移行が可能です。";
             this.lblBackupNote.Location = new System.Drawing.Point(16, 72);
-            this.lblBackupNote.Size = new System.Drawing.Size(560, 35);
+            this.lblBackupNote.Size = new System.Drawing.Size(560, 40); // 高さ 35 -> 40
             this.lblBackupNote.ForeColor = System.Drawing.Color.Firebrick;
 
             this.grpBackup.Controls.AddRange(new Control[] { this.btnBackupZip, this.btnRestoreZip, this.lblBackupNote });
 
             // ── 4. 既存のCSV一括インポート機能の移設 ──
             this.grpCsvImport.Text = "新規案件一括登録";
-            this.grpCsvImport.Location = new System.Drawing.Point(16, 385);
-            this.grpCsvImport.Size = new System.Drawing.Size(592, 90);
+            this.grpCsvImport.Location = new System.Drawing.Point(16, 395); // 上の枠が大きくなった分、Y座標を 385 -> 395 に下げる
+            this.grpCsvImport.Size = new System.Drawing.Size(592, 110); // 高さ 90 -> 110 に拡大
 
             this.btnImportCsv.Text = "📂 新規案件CSVをインポート";
             this.btnImportCsv.Location = new System.Drawing.Point(16, 24);
@@ -173,18 +171,19 @@ namespace MAItems
             this.btnImportCsv.BackColor = System.Drawing.Color.LightSteelBlue;
             this.btnImportCsv.Click += new System.EventHandler(this.btnImportCsv_Click);
 
-            this.lblImportNote.Text = "※既存の案件一覧CSVファイルを読み込み、データベースへ一括で新規追加登録します（仲介会社名と案件IDが重複するデータは自動スキップされます）。";
+            // 改行を追加し、高さを拡大
+            this.lblImportNote.Text = "※既存の案件一覧CSVファイルを読み込み、データベースへ一括で新規追加登録します。\n（仲介会社名と案件IDが重複するデータは自動スキップされます）。";
             this.lblImportNote.Location = new System.Drawing.Point(16, 64);
-            this.lblImportNote.Size = new System.Drawing.Size(560, 20);
+            this.lblImportNote.Size = new System.Drawing.Size(560, 40); // 高さ 20 -> 40
             this.lblImportNote.ForeColor = System.Drawing.Color.DimGray;
 
             this.grpCsvImport.Controls.AddRange(new Control[] { this.btnImportCsv, this.lblImportNote });
 
             // ── 閉じるボタンとステータス ──
             this.btnClose.Text = "✖ 閉じる";
-            this.btnClose.Location = new System.Drawing.Point(488, 490);
+            this.btnClose.Location = new System.Drawing.Point(488, 520); // フォーム拡大に伴い、Y座標を 490 -> 520 に下げる
             this.btnClose.Size = new System.Drawing.Size(120, 32);
-            this.btnClose.Click += (s, e) => this.Close();
+            this.btnClose.Click += new System.EventHandler(this.btnClose_Click);
 
             this.statusStrip.Items.AddRange(new ToolStripItem[] { this.lblStatus });
             this.lblStatus.Text = "準備完了";

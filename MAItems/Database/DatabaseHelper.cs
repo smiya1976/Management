@@ -51,18 +51,29 @@ namespace MAItems.Database
                     TransferReason      TEXT,
                     TransferConditions  TEXT,
                     Status              TEXT,
-                    AttachmentsSummary  TEXT
+                    AttachmentsSummary  TEXT,
+                    IsProcessing        INTEGER DEFAULT 0,
+                    LastUpdatedAt       TEXT
                 );";
             using (var cmd = new SqliteCommand(sqlDeals, conn))
                 cmd.ExecuteNonQuery();
 
-            // 既存のDBからのアップデート用（すでにDealsがあり、AttachmentsSummary列がない場合に追加）
+            // 追加項目をALTER TABLEで安全に追記
             try
             {
                 using var cmdAlt = new SqliteCommand("ALTER TABLE Deals ADD COLUMN AttachmentsSummary TEXT;", conn);
                 cmdAlt.ExecuteNonQuery();
             }
             catch { /* すでにある場合はエラーになるので無視 */ }
+            try
+            {
+                using var cmdAlt2 = new SqliteCommand("ALTER TABLE Deals ADD COLUMN LastUpdatedAt TEXT;", conn);
+                cmdAlt2.ExecuteNonQuery();
+            }
+            catch { /* すでにある場合はエラーになるので無視 */ }
+
+
+
 
             string sqlNumeric = @"
                 CREATE TABLE IF NOT EXISTS DealsNumeric (
@@ -390,6 +401,9 @@ namespace MAItems.Database
 
         public void UpdateDeal(Deal d)
         {
+            // 更新時に自動で現在日時を最終更新日時にセット
+            d.LastUpdatedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+
             using (var conn = new SqliteConnection(_connectionString))
             {
                 conn.Open();
@@ -417,7 +431,9 @@ namespace MAItems.Database
                         TransferReason      = @TransferReason,
                         TransferConditions  = @TransferConditions,
                         Status              = @Status,
-                        AttachmentsSummary  = @AttachmentsSummary
+                        AttachmentsSummary  = @AttachmentsSummary,
+                        IsProcessing        = @IsProcessing,   -- 追加
+                        LastUpdatedAt       = @LastUpdatedAt   -- 追加
                     WHERE Id = @Id;";
                 using var cmd = new SqliteCommand(sql, conn);
                 BindParameters(cmd, d);
@@ -425,6 +441,7 @@ namespace MAItems.Database
                 cmd.ExecuteNonQuery();
             }
             UpsertNumeric(d.Id);
+
         }
 
         public void DeleteDeal(long id)
@@ -911,7 +928,11 @@ namespace MAItems.Database
             TransferReason = StrD(r, "TransferReason"),
             TransferConditions = StrD(r, "TransferConditions"),
             Status = StrD(r, "Status"),
-            AttachmentsSummary = HasColumn(r, "AttachmentsSummary") ? StrD(r, "AttachmentsSummary") : ""
+            AttachmentsSummary = HasColumn(r, "AttachmentsSummary") ? StrD(r, "AttachmentsSummary") : "",
+
+            // ↓↓↓ マッピングの追加 ↓↓↓
+            IsProcessing = HasColumn(r, "IsProcessing") && !r.IsDBNull(r.GetOrdinal("IsProcessing")) ? r.GetInt32(r.GetOrdinal("IsProcessing")) == 1 : false,
+            LastUpdatedAt = HasColumn(r, "LastUpdatedAt") ? StrD(r, "LastUpdatedAt") : ""
         };
 
         private static DealNumeric MapDealNumeric(SqliteDataReader r) => new DealNumeric
@@ -1036,6 +1057,10 @@ namespace MAItems.Database
         {
             cmd.Parameters.AddWithValue("@InputDate", d.InputDate); cmd.Parameters.AddWithValue("@Route", d.Route); cmd.Parameters.AddWithValue("@BrokerCompany", d.BrokerCompany); cmd.Parameters.AddWithValue("@Title", d.Title); cmd.Parameters.AddWithValue("@DealId", d.DealId); cmd.Parameters.AddWithValue("@BusinessContent", d.BusinessContent); cmd.Parameters.AddWithValue("@Area", d.Area); cmd.Parameters.AddWithValue("@Revenue", d.Revenue); cmd.Parameters.AddWithValue("@OperatingProfit", d.OperatingProfit); cmd.Parameters.AddWithValue("@EBITDA", d.EBITDA); cmd.Parameters.AddWithValue("@NetAssets", d.NetAssets); cmd.Parameters.AddWithValue("@TotalAssets", d.TotalAssets); cmd.Parameters.AddWithValue("@NetCashDebt", d.NetCashDebt); cmd.Parameters.AddWithValue("@CashEquivalents", d.CashEquivalents); cmd.Parameters.AddWithValue("@InterestBearingDebt", d.InterestBearingDebt); cmd.Parameters.AddWithValue("@EmployeeCount", d.EmployeeCount); cmd.Parameters.AddWithValue("@Features", d.Features); cmd.Parameters.AddWithValue("@AskingPrice", d.AskingPrice); cmd.Parameters.AddWithValue("@TransferType", d.TransferType); cmd.Parameters.AddWithValue("@TransferReason", d.TransferReason); cmd.Parameters.AddWithValue("@TransferConditions", d.TransferConditions); cmd.Parameters.AddWithValue("@Status", d.Status);
             cmd.Parameters.AddWithValue("@AttachmentsSummary", d.AttachmentsSummary ?? "");
+
+            // ↓↓↓ パラメータバインドの追加 ↓↓↓
+            cmd.Parameters.AddWithValue("@IsProcessing", d.IsProcessing ? 1 : 0);
+            cmd.Parameters.AddWithValue("@LastUpdatedAt", d.LastUpdatedAt ?? "");
         }
 
         private static void BindFinancialHighlight(SqliteCommand cmd, FinancialHighlight f)

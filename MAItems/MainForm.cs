@@ -52,10 +52,31 @@ namespace MAItems
             dgvData.AutoGenerateColumns = false;
             dgvData.Columns.Clear();
 
+            // 1. 先頭に「ID」列を追加（既存の配置を維持）
+            dgvData.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "Id",
+                DataPropertyName = "Id",
+                HeaderText = "ID",
+                Width = 45,
+                ReadOnly = true,
+            });
+
+            // 2. 「処理中」チェックボックス列をIDの右隣に配置
+            var checkCol = new DataGridViewCheckBoxColumn
+            {
+                Name = "IsProcessing",
+                DataPropertyName = "IsProcessing",
+                HeaderText = "処理中",
+                Width = 55,
+                ReadOnly = false // グリッド上で直接チェックのオンオフを切り替え可能にする場合
+            };
+            dgvData.Columns.Add(checkCol);
+
+            // 3. その他のテキスト列の定義（既存の「Id」を除いた配列）
             var columns = new
                 (string prop, string header, int width, bool readOnly)[]
             {
-                ("Id",                  "ID",              45,  true),
                 ("InputDate",           "入力日",           90,  false),
                 ("Route",               "経路",             90,  false),
                 ("BrokerCompany",       "仲介会社",        140,  false),
@@ -78,6 +99,7 @@ namespace MAItems
                 ("TransferReason",      "譲渡理由",        140,  false),
                 ("TransferConditions",  "希望条件",        120,  false),
                 ("Status",              "処理",             80,  false),
+                ("LastUpdatedAt",       "最終更新日時",    140,  true),
             };
 
             foreach (var (prop, header, width, ro) in columns)
@@ -159,9 +181,18 @@ namespace MAItems
 
         private void LoadData(string keyword = "")
         {
-            _allDeals = string.IsNullOrWhiteSpace(keyword)
+            // まずはキーワード検索の結果（または全件）を取得
+            var deals = string.IsNullOrWhiteSpace(keyword)
                 ? _db.GetAllDeals()
                 : _db.SearchDeals(keyword);
+
+            // 🛠 追加: 「処理中のみ」チェックが入っている場合は、IsProcessing == true のデータだけに絞り込む
+            if (chkFilterProcessing.Checked)
+            {
+                deals = deals.Where(d => d.IsProcessing).ToList();
+            }
+
+            _allDeals = deals;
 
             // 常に1ページ目（最新データ）を表示
             _currentPage = 1;
@@ -182,7 +213,12 @@ namespace MAItems
             ApplyPageNumeric();
             SetStatus($"🔢 数値モード：{_allDealNumerics.Count} 件");
         }
-
+        // ── 処理中フィルターの切り替えイベント ──
+        private void chkFilterProcessing_CheckedChanged(object sender, EventArgs e)
+        {
+            // 現在テキストボックスに入力されているキーワードを維持したまま再ロード
+            LoadData(txtSearch.Text.Trim());
+        }
         // ══════════════════════════════════════════════════════
         // ページング
         // ══════════════════════════════════════════════════════
@@ -456,6 +492,10 @@ namespace MAItems
                     btnToggleNumeric.Text = "📋 通常モード";
                     btnToggleNumeric.BackColor =
                         System.Drawing.Color.LightSalmon;
+
+                    // 数値モード時はフィルターを無効化
+                    chkFilterProcessing.Enabled = false;
+
                     btnAdd.Enabled = false;
                     btnDelete.Enabled = false;
                     btnDetail.Enabled = false;
@@ -478,6 +518,9 @@ namespace MAItems
                 btnToggleNumeric.Text = "🔢 数値モード";
                 btnToggleNumeric.BackColor =
                     System.Drawing.Color.LightCyan;
+                // 通常モードに戻ったらフィルターを再有効化
+                chkFilterProcessing.Enabled = true;
+
                 btnAdd.Enabled = true;
                 btnDelete.Enabled = true;
                 btnDataSync.Enabled = true;

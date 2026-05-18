@@ -169,5 +169,26 @@ namespace MAItems
                 MessageBox.Show("インポート中にエラーが発生しました:\n" + ex.Message, "エラー", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
+        // ══════════════════════════════════════════════════════
+        // UI イベントハンドラ
+        // ══════════════════════════════════════════════════════
+
+        /// <summary>
+        /// 入力日で絞り込むチェックボックスの切り替えイベント
+        /// </summary>
+        private void chkUseDate_CheckedChanged(object? sender, EventArgs e)
+        {
+            // チェック状態に応じて、日付選択コントロールの有効/無効を切り替える
+            dtpFrom.Enabled = chkUseDate.Checked;
+            dtpTo.Enabled = chkUseDate.Checked;
+        }
+
+        /// <summary>
+        /// 閉じるボタンのクリックイベント
+        /// </summary>
+        private void btnClose_Click(object? sender, EventArgs e)
+        {
+            this.Close();
+        }
     }
 }

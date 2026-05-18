@@ -23,6 +23,7 @@
         private System.Windows.Forms.Label lblPageInfo;
         private System.Windows.Forms.ComboBox cmbPageSize;
         private System.Windows.Forms.Label lblPageSize;
+        private System.Windows.Forms.CheckBox chkFilterProcessing;
 
         private void InitializeComponent()
         {
@@ -44,6 +45,8 @@
             this.lblPageInfo = new System.Windows.Forms.Label();
             this.cmbPageSize = new System.Windows.Forms.ComboBox();
             this.lblPageSize = new System.Windows.Forms.Label();
+            this.chkFilterProcessing = new System.Windows.Forms.CheckBox();
+
 
             this.SuspendLayout();
 
@@ -60,11 +63,11 @@
                 System.Windows.Forms.AnchorStyles.Top |
                 System.Windows.Forms.AnchorStyles.Left;
 
-            // 上・左・右 に固定（横幅追随）
-            var anchorTopLeftRight =
-                System.Windows.Forms.AnchorStyles.Top |
-                System.Windows.Forms.AnchorStyles.Left |
-                System.Windows.Forms.AnchorStyles.Right;
+            //// 上・左・右 に固定（横幅追随）
+            //var anchorTopLeftRight =
+            //    System.Windows.Forms.AnchorStyles.Top |
+            //    System.Windows.Forms.AnchorStyles.Left |
+            //    System.Windows.Forms.AnchorStyles.Right;
 
             // 上・右 に固定
             var anchorTopRight =
@@ -82,10 +85,10 @@
                 System.Windows.Forms.AnchorStyles.Left |
                 System.Windows.Forms.AnchorStyles.Right;
 
-            // 下・右 に固定
-            var anchorBottomRight =
-                System.Windows.Forms.AnchorStyles.Bottom |
-                System.Windows.Forms.AnchorStyles.Right;
+            //// 下・右 に固定
+            //var anchorBottomRight =
+            //    System.Windows.Forms.AnchorStyles.Bottom |
+            //    System.Windows.Forms.AnchorStyles.Right;
 
             // 上下左右（全方向に伸縮）
             var anchorAll =
@@ -93,6 +96,10 @@
                 System.Windows.Forms.AnchorStyles.Bottom |
                 System.Windows.Forms.AnchorStyles.Left |
                 System.Windows.Forms.AnchorStyles.Right;
+            // クラスのメンバ変数宣言エリア（通常はファイルの下部にあります）に以下を追加
+            // private System.Windows.Forms.CheckBox chkFilterProcessing;
+
+            // ── 検索バー・フィルターの配置 ──
 
             // lblSearch
             this.lblSearch.Text = "検索:";
@@ -100,63 +107,81 @@
             this.lblSearch.Size = new System.Drawing.Size(40, 23);
             this.lblSearch.Anchor = anchorTopLeft;
 
-            // txtSearch
+            // txtSearch (幅を 220 -> 160 に少し縮小)
             this.txtSearch.Location = new System.Drawing.Point(62, 15);
-            this.txtSearch.Size = new System.Drawing.Size(220, 23);
+            this.txtSearch.Size = new System.Drawing.Size(160, 23);
             this.txtSearch.Anchor = anchorTopLeft;
-            this.txtSearch.KeyDown +=
-                new System.Windows.Forms.KeyEventHandler(
-                    this.txtSearch_KeyDown);
+            this.txtSearch.KeyDown += new System.Windows.Forms.KeyEventHandler(this.txtSearch_KeyDown);
 
-            // btnSearch
+            // 🛠 追加: 処理中フィルターチェックボックス
+            this.chkFilterProcessing.Text = "処理中のみ";
+            this.chkFilterProcessing.Location = new System.Drawing.Point(230, 16);
+            this.chkFilterProcessing.Size = new System.Drawing.Size(110, 23);
+            this.chkFilterProcessing.Anchor = anchorTopLeft;
+            this.chkFilterProcessing.Click += new System.EventHandler(this.chkFilterProcessing_CheckedChanged);
+
+            // btnSearch (X座標を 292 -> 346 にスライド)
             this.btnSearch.Text = "🔍 検索";
-            this.btnSearch.Location = new System.Drawing.Point(292, 13);
-            this.btnSearch.Size = new System.Drawing.Size(100, 28); // 80 -> 100
+            this.btnSearch.Location = new System.Drawing.Point(346, 13);
+            this.btnSearch.Size = new System.Drawing.Size(100, 28);
             this.btnSearch.Anchor = anchorTopLeft;
-            this.btnSearch.Click +=
-                new System.EventHandler(this.btnSearch_Click);
+            this.btnSearch.Click += new System.EventHandler(this.btnSearch_Click);
 
-            // btnClear
+            // btnClear (X座標を 402 -> 452 にスライド)
             this.btnClear.Text = "クリア";
-            this.btnClear.Location = new System.Drawing.Point(402, 13); // 382 -> 402
-            this.btnClear.Size = new System.Drawing.Size(80, 28); // 70 -> 80
+            this.btnClear.Location = new System.Drawing.Point(452, 13);
+            this.btnClear.Size = new System.Drawing.Size(80, 28);
             this.btnClear.Anchor = anchorTopLeft;
-            this.btnClear.Click +=
-                new System.EventHandler(this.btnClear_Click);
+            this.btnClear.Click += new System.EventHandler(this.btnClear_Click);
 
-            // btnDetail
+            // btnDetail (X座標を 492 -> 538 にスライド)
             this.btnDetail.Text = "📋 案件詳細";
-            this.btnDetail.Location = new System.Drawing.Point(492, 13);
+            this.btnDetail.Location = new System.Drawing.Point(538, 13);
             this.btnDetail.Size = new System.Drawing.Size(120, 28);
             this.btnDetail.BackColor = System.Drawing.Color.LightYellow;
             this.btnDetail.Enabled = false;
             this.btnDetail.Anchor = anchorTopLeft;
             this.btnDetail.Click += new System.EventHandler(this.btnDetail_Click);
 
-            // btnAdd
+            // btnAdd (X座標を 622 -> 664 にスライド)
             this.btnAdd.Text = "➕ 新規追加";
-            this.btnAdd.Location = new System.Drawing.Point(622, 13);
+            this.btnAdd.Location = new System.Drawing.Point(664, 13);
             this.btnAdd.Size = new System.Drawing.Size(120, 28);
             this.btnAdd.BackColor = System.Drawing.Color.LightGreen;
             this.btnAdd.Anchor = anchorTopLeft;
             this.btnAdd.Click += new System.EventHandler(this.btnAdd_Click);
 
-            // 🛠 追加：インポート・エクスポートを統合したデータ管理ボタンを配置
-            this.btnDataSync = new System.Windows.Forms.Button();
+            // btnDataSync (X座標を 752 -> 790 にスライド)
             this.btnDataSync.Text = "⚙ データ管理";
-            this.btnDataSync.Location = new System.Drawing.Point(752, 13);
+            this.btnDataSync.Location = new System.Drawing.Point(790, 13);
             this.btnDataSync.Size = new System.Drawing.Size(140, 28);
             this.btnDataSync.BackColor = System.Drawing.Color.LightGray;
             this.btnDataSync.Anchor = anchorTopLeft;
             this.btnDataSync.Click += new System.EventHandler(this.btnDataSync_Click);
 
-            // btnToggleNumeric (位置をずらして再調整)
+            // btnToggleNumeric (X座標を 902 -> 940 にスライド)
             this.btnToggleNumeric.Text = "🔢 数値モード";
-            this.btnToggleNumeric.Location = new System.Drawing.Point(902, 13); // 1022 -> 902
+            this.btnToggleNumeric.Location = new System.Drawing.Point(940, 13);
             this.btnToggleNumeric.Size = new System.Drawing.Size(130, 28);
             this.btnToggleNumeric.BackColor = System.Drawing.Color.LightCyan;
             this.btnToggleNumeric.Anchor = anchorTopLeft;
             this.btnToggleNumeric.Click += new System.EventHandler(this.btnToggleNumeric_Click);
+
+            // コントロールの追加配列に this.chkFilterProcessing を忘れず追加する
+            this.Controls.AddRange(new System.Windows.Forms.Control[]
+            {
+                this.lblSearch,    this.txtSearch, this.chkFilterProcessing, // ← ココ
+                this.btnSearch,    this.btnClear,
+                this.btnDetail,    this.btnAdd,
+                this.btnDataSync,  this.btnToggleNumeric, this.btnDelete,
+                this.dgvData,
+                this.lblPageSize,  this.cmbPageSize,
+                this.btnFirstPage, this.btnPrevPage,
+                this.lblPageInfo,
+                this.btnNextPage,  this.btnLastPage,
+                this.lblStatus,
+            });
+
 
             // btnDelete (右上に固定)
             this.btnDelete.Text = "🗑 削除";
