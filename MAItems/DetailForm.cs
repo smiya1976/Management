@@ -876,6 +876,104 @@ namespace MAItems
 
         #endregion
 
+        #region 財務ハイライト流し込み
+        /// <summary>
+        /// クリップボードのTSVデータを解析し、財務ハイライトのグリッドに自動入力します
+        /// </summary>
+        private void btnPasteFinancial_Click(object? sender, EventArgs e)
+        {
+            // 1. 手順とプロンプトの案内メッセージ
+            string instruction =
+                "クリップボードの表データ（タブ区切りテキスト）を財務ハイライトに取り込みます。\n\n" +
+                "【AI（Gemini等）で画像からデータを作成する場合】\n" +
+                "まだデータをコピーしていない場合は「いいえ」を押してください。\n" +
+                "AIへ指示するための「専用プロンプト（指示文）」がクリップボードにコピーされます。\n\n" +
+                "すでにAIから出力された表データをコピー済みの場合は「はい」を押して取り込みを開始してください。";
+
+            var dialogResult = MessageBox.Show(
+                instruction,
+                "画像から表データの取り込み",
+                MessageBoxButtons.YesNoCancel,
+                MessageBoxIcon.Information,
+                MessageBoxDefaultButton.Button1);
+
+            if (dialogResult == DialogResult.Cancel)
+            {
+                return; // 何もせず終了
+            }
+
+            // 2. 「いいえ」の場合：プロンプトをクリップボードに送って終了
+            if (dialogResult == DialogResult.No)
+            {
+                string prompt =
+                    "添付の表画像からデータを読み取り、そのままExcelやアプリに貼り付けられるよう「タブ区切りテキスト（TSV）」で出力してください。\n\n" +
+                    "＜出力ルール＞\n" +
+                    "1. 1行目はヘッダーとし、「項目名」と各期のラベル（例：24/3期、実績1期など）を出力してください。\n" +
+                    "2. 2行目以降に、各項目の数値を出力してください。\n" +
+                    "3. 表内の階層（字下げ）は無視し、項目名は左詰めで出力してください。\n" +
+                    "4. 数値の桁区切りカンマ（,）は除外し、マイナス表記は半角の「-」に統一してください。\n" +
+                    "5. 簡単にコピーできるよう、出力は必ず1つのコードブロック（```text 〜 ```）にまとめてください。";
+
+                Clipboard.SetText(prompt);
+                MessageBox.Show(
+                    "抽出用のプロンプトをクリップボードにコピーしました！\n\n" +
+                    "Gemini等のチャット欄に画像を貼り付け、そのまま「貼り付け（Ctrl+V）」でプロンプトを入力して送信してください。",
+                    "プロンプトのコピー完了",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Asterisk);
+                return;
+            }
+
+            // 3. 「はい」の場合：実際の取り込み処理を実行
+            string text = Clipboard.GetText();
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                SetStatus("⚠ クリップボードにテキストデータがありません", isError: true);
+                return;
+            }
+
+            // ロジッククラスを呼び出して、構造化されたデータを取得
+            var parsedData = MAItems.Database.FinancialClipboardParser.ParseTsv(text, 6);
+
+            string[] colNames = { "col_actual_1", "col_actual_2", "col_actual_3", "col_forecast_1", "col_forecast_2", "col_forecast_3" };
+            int updateCount = 0;
+
+            // ヘッダーの反映
+            foreach (var kvp in parsedData.Headers)
+            {
+                // 一旦変数で受け取る
+                var targetColumn = dgvFinancial.Columns[colNames[kvp.Key]];
+
+                // nullではない（列が存在する）場合のみ、HeaderTextを書き換える
+                if (targetColumn != null)
+                {
+                    targetColumn.HeaderText = kvp.Value;
+                }
+            }
+
+            // データ行の反映
+            foreach (DataGridViewRow row in dgvFinancial.Rows)
+            {
+                string tag = row.Tag as string ?? "";
+
+                if (parsedData.Rows.TryGetValue(tag, out var values))
+                {
+                    for (int i = 0; i < values.Length; i++)
+                    {
+                        if (values[i] is double val)
+                        {
+                            row.Cells[colNames[i]].Value = val;
+                            updateCount++;
+                        }
+                    }
+                }
+            }
+
+            SetStatus($"✔ 表データを取り込みました（{updateCount} セル更新）", isError: false);
+        }
+        #endregion
+
+
         #region 共通ユーティリティ
 
         private void btnClose_Click(object? sender, EventArgs e)

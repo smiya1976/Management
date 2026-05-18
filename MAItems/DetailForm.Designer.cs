@@ -32,6 +32,7 @@ namespace MAItems
         private TextBox txtAttachmentsSummary;
         private DataGridView dgvAttachments;
         private Button btnAddFile, btnOpenFile, btnDeleteFile;
+        private Button btnPasteFinancial;
 
         // フッターボタン群
         private Button btnPasteFromMail;
@@ -248,12 +249,25 @@ namespace MAItems
         private void BuildTab3()
         {
             this.dgvFinancial = new DataGridView();
-            var lblNote = new Label { Text = "単位：千円　　期ラベルはヘッダーをダブルクリックして編集できます", Location = new Point(4, 4), Size = new Size(800, 20), Font = new Font("Yu Gothic UI", 8.5F), ForeColor = Color.DimGray };
+            var lblNote = new Label { Text = "単位：千円　　期ラベルはヘッダーをダブルクリックして編集できます", Location = new Point(4, 4), Size = new Size(400, 20), Font = new Font("Yu Gothic UI", 8.5F), ForeColor = Color.DimGray };
+
+            // 👇 ここから追加：貼付ボタンの生成
+            this.btnPasteFinancial = new Button
+            {
+                Text = "📋 表から自動入力",
+                Location = new Point(420, 2), // ラベルの右側に配置
+                Size = new Size(140, 24),
+                BackColor = Color.LightYellow
+            };
+            this.btnPasteFinancial.Click += new EventHandler(this.btnPasteFinancial_Click);
+            // 👆 ここまで追加
+
             this.dgvFinancial.Location = new Point(4, 28);
             this.dgvFinancial.Size = new Size(820, 545);
             this.dgvFinancial.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
 
             this.tabPage3.Controls.Add(lblNote);
+            this.tabPage3.Controls.Add(this.btnPasteFinancial); // 👈 タブにボタンを追加
             this.tabPage3.Controls.Add(this.dgvFinancial);
         }
 
