@@ -2,6 +2,7 @@
 using System.Text;
 using System.Text.RegularExpressions;
 
+
 namespace MAItems.MailParser
 {
     /// <summary>
@@ -17,7 +18,7 @@ namespace MAItems.MailParser
     {
         // ── 抽象メソッド（各パーサーで必ず実装） ──────────
         public abstract bool CanParse(string mailBody);
-        public abstract ParsedDeal Parse(string mailBody);
+        public abstract List<ParsedDeal> Parse(string mailBody);
 
         // ══════════════════════════════════════════════════════
         // 全角→半角 正規化

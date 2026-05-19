@@ -1,4 +1,6 @@
-﻿namespace MAItems.MailParser
+﻿using System.Collections.Generic;
+
+namespace MAItems.MailParser
 {
     /// <summary>
     /// メール本文パーサーの共通インターフェース。
@@ -14,6 +16,6 @@
         /// <summary>
         /// メール本文を解析して ParsedDeal に変換する。
         /// </summary>
-        ParsedDeal Parse(string mailBody);
+        List<ParsedDeal> Parse(string mailBody);
     }
 }

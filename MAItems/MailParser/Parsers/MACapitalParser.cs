@@ -1,4 +1,7 @@
-﻿namespace MAItems.MailParser.Parsers
+﻿using System;
+using System.Collections.Generic;
+
+namespace MAItems.MailParser.Parsers
 {
     /// <summary>
     /// M&Aキャピタルパートナーズ株式会社のメール本文パーサー。
@@ -12,7 +15,7 @@
             => mailBody.Contains(Identifier,
                 System.StringComparison.OrdinalIgnoreCase);
 
-        public override ParsedDeal Parse(string mailBody)
+        public override List<ParsedDeal> Parse(string mailBody)
         {
             // 全角→半角に正規化
             string body = NormalizeBody(mailBody);
@@ -78,7 +81,7 @@
             result.TransferReason = ExtractBlock(body, "【譲渡背景】");
             result.TransferConditions = ExtractBlock(body, "【希望条件】");
 
-            return result;
+            return new List<ParsedDeal> { result };
         }
 
         // ─── Net Cash / Net Debt 抽出 ─────────────────────

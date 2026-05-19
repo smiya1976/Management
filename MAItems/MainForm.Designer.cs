@@ -27,300 +27,250 @@
 
         private void InitializeComponent()
         {
-            this.lblSearch = new System.Windows.Forms.Label();
-            this.txtSearch = new System.Windows.Forms.TextBox();
-            this.btnSearch = new System.Windows.Forms.Button();
-            this.btnClear = new System.Windows.Forms.Button();
-            this.btnDetail = new System.Windows.Forms.Button();
-            this.btnAdd = new System.Windows.Forms.Button();
-            this.btnDataSync = new System.Windows.Forms.Button();
-            this.btnToggleNumeric = new System.Windows.Forms.Button();
-            this.btnDelete = new System.Windows.Forms.Button();
-            this.dgvData = new System.Windows.Forms.DataGridView();
-            this.lblStatus = new System.Windows.Forms.Label();
-            this.btnFirstPage = new System.Windows.Forms.Button();
-            this.btnPrevPage = new System.Windows.Forms.Button();
-            this.btnNextPage = new System.Windows.Forms.Button();
-            this.btnLastPage = new System.Windows.Forms.Button();
-            this.lblPageInfo = new System.Windows.Forms.Label();
-            this.cmbPageSize = new System.Windows.Forms.ComboBox();
-            this.lblPageSize = new System.Windows.Forms.Label();
-            this.chkFilterProcessing = new System.Windows.Forms.CheckBox();
-
-
-            this.SuspendLayout();
-
-            // ── フォーム ──────────────────────────────────
-            this.Text = "M&A案件管理";
-            this.Size = new System.Drawing.Size(1280, 680);
-            this.MinimumSize = new System.Drawing.Size(900, 500);
-            this.StartPosition =
-                System.Windows.Forms.FormStartPosition.CenterScreen;
-
-            // ── 検索バー（上部固定） ──────────────────────
-            // 上・左 に固定
-            var anchorTopLeft =
-                System.Windows.Forms.AnchorStyles.Top |
-                System.Windows.Forms.AnchorStyles.Left;
-
-            //// 上・左・右 に固定（横幅追随）
-            //var anchorTopLeftRight =
-            //    System.Windows.Forms.AnchorStyles.Top |
-            //    System.Windows.Forms.AnchorStyles.Left |
-            //    System.Windows.Forms.AnchorStyles.Right;
-
-            // 上・右 に固定
-            var anchorTopRight =
-                System.Windows.Forms.AnchorStyles.Top |
-                System.Windows.Forms.AnchorStyles.Right;
-
-            // 下・左 に固定
-            var anchorBottomLeft =
-                System.Windows.Forms.AnchorStyles.Bottom |
-                System.Windows.Forms.AnchorStyles.Left;
-
-            // 下・左・右 に固定（横幅追随）
-            var anchorBottomLeftRight =
-                System.Windows.Forms.AnchorStyles.Bottom |
-                System.Windows.Forms.AnchorStyles.Left |
-                System.Windows.Forms.AnchorStyles.Right;
-
-            //// 下・右 に固定
-            //var anchorBottomRight =
-            //    System.Windows.Forms.AnchorStyles.Bottom |
-            //    System.Windows.Forms.AnchorStyles.Right;
-
-            // 上下左右（全方向に伸縮）
-            var anchorAll =
-                System.Windows.Forms.AnchorStyles.Top |
-                System.Windows.Forms.AnchorStyles.Bottom |
-                System.Windows.Forms.AnchorStyles.Left |
-                System.Windows.Forms.AnchorStyles.Right;
-            // クラスのメンバ変数宣言エリア（通常はファイルの下部にあります）に以下を追加
-            // private System.Windows.Forms.CheckBox chkFilterProcessing;
-
-            // ── 検索バー・フィルターの配置 ──
-
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
+            lblSearch = new Label();
+            txtSearch = new TextBox();
+            btnSearch = new Button();
+            btnClear = new Button();
+            btnDetail = new Button();
+            btnAdd = new Button();
+            btnDataSync = new Button();
+            btnToggleNumeric = new Button();
+            btnDelete = new Button();
+            dgvData = new DataGridView();
+            lblStatus = new Label();
+            btnFirstPage = new Button();
+            btnPrevPage = new Button();
+            btnNextPage = new Button();
+            btnLastPage = new Button();
+            lblPageInfo = new Label();
+            cmbPageSize = new ComboBox();
+            lblPageSize = new Label();
+            chkFilterProcessing = new CheckBox();
+            ((System.ComponentModel.ISupportInitialize)dgvData).BeginInit();
+            SuspendLayout();
+            // 
             // lblSearch
-            this.lblSearch.Text = "検索:";
-            this.lblSearch.Location = new System.Drawing.Point(16, 18);
-            this.lblSearch.Size = new System.Drawing.Size(40, 23);
-            this.lblSearch.Anchor = anchorTopLeft;
-
-            // txtSearch (幅を 220 -> 160 に少し縮小)
-            this.txtSearch.Location = new System.Drawing.Point(62, 15);
-            this.txtSearch.Size = new System.Drawing.Size(160, 23);
-            this.txtSearch.Anchor = anchorTopLeft;
-            this.txtSearch.KeyDown += new System.Windows.Forms.KeyEventHandler(this.txtSearch_KeyDown);
-
-            // 🛠 追加: 処理中フィルターチェックボックス
-            this.chkFilterProcessing.Text = "処理中のみ";
-            this.chkFilterProcessing.Location = new System.Drawing.Point(230, 16);
-            this.chkFilterProcessing.Size = new System.Drawing.Size(110, 23);
-            this.chkFilterProcessing.Anchor = anchorTopLeft;
-            this.chkFilterProcessing.Click += new System.EventHandler(this.chkFilterProcessing_CheckedChanged);
-
-            // btnSearch (X座標を 292 -> 346 にスライド)
-            this.btnSearch.Text = "🔍 検索";
-            this.btnSearch.Location = new System.Drawing.Point(346, 13);
-            this.btnSearch.Size = new System.Drawing.Size(100, 28);
-            this.btnSearch.Anchor = anchorTopLeft;
-            this.btnSearch.Click += new System.EventHandler(this.btnSearch_Click);
-
-            // btnClear (X座標を 402 -> 452 にスライド)
-            this.btnClear.Text = "クリア";
-            this.btnClear.Location = new System.Drawing.Point(452, 13);
-            this.btnClear.Size = new System.Drawing.Size(80, 28);
-            this.btnClear.Anchor = anchorTopLeft;
-            this.btnClear.Click += new System.EventHandler(this.btnClear_Click);
-
-            // btnDetail (X座標を 492 -> 538 にスライド)
-            this.btnDetail.Text = "📋 案件詳細";
-            this.btnDetail.Location = new System.Drawing.Point(538, 13);
-            this.btnDetail.Size = new System.Drawing.Size(120, 28);
-            this.btnDetail.BackColor = System.Drawing.Color.LightYellow;
-            this.btnDetail.Enabled = false;
-            this.btnDetail.Anchor = anchorTopLeft;
-            this.btnDetail.Click += new System.EventHandler(this.btnDetail_Click);
-
-            // btnAdd (X座標を 622 -> 664 にスライド)
-            this.btnAdd.Text = "➕ 新規追加";
-            this.btnAdd.Location = new System.Drawing.Point(664, 13);
-            this.btnAdd.Size = new System.Drawing.Size(120, 28);
-            this.btnAdd.BackColor = System.Drawing.Color.LightGreen;
-            this.btnAdd.Anchor = anchorTopLeft;
-            this.btnAdd.Click += new System.EventHandler(this.btnAdd_Click);
-
-            // btnDataSync (X座標を 752 -> 790 にスライド)
-            this.btnDataSync.Text = "⚙ データ管理";
-            this.btnDataSync.Location = new System.Drawing.Point(790, 13);
-            this.btnDataSync.Size = new System.Drawing.Size(140, 28);
-            this.btnDataSync.BackColor = System.Drawing.Color.LightGray;
-            this.btnDataSync.Anchor = anchorTopLeft;
-            this.btnDataSync.Click += new System.EventHandler(this.btnDataSync_Click);
-
-            // btnToggleNumeric (X座標を 902 -> 940 にスライド)
-            this.btnToggleNumeric.Text = "🔢 数値モード";
-            this.btnToggleNumeric.Location = new System.Drawing.Point(940, 13);
-            this.btnToggleNumeric.Size = new System.Drawing.Size(130, 28);
-            this.btnToggleNumeric.BackColor = System.Drawing.Color.LightCyan;
-            this.btnToggleNumeric.Anchor = anchorTopLeft;
-            this.btnToggleNumeric.Click += new System.EventHandler(this.btnToggleNumeric_Click);
-
-            // コントロールの追加配列に this.chkFilterProcessing を忘れず追加する
-            this.Controls.AddRange(new System.Windows.Forms.Control[]
-            {
-                this.lblSearch,    this.txtSearch, this.chkFilterProcessing, // ← ココ
-                this.btnSearch,    this.btnClear,
-                this.btnDetail,    this.btnAdd,
-                this.btnDataSync,  this.btnToggleNumeric, this.btnDelete,
-                this.dgvData,
-                this.lblPageSize,  this.cmbPageSize,
-                this.btnFirstPage, this.btnPrevPage,
-                this.lblPageInfo,
-                this.btnNextPage,  this.btnLastPage,
-                this.lblStatus,
-            });
-
-
-            // btnDelete (右上に固定)
-            this.btnDelete.Text = "🗑 削除";
-            this.btnDelete.Location = new System.Drawing.Point(1160, 13);
-            this.btnDelete.Size = new System.Drawing.Size(96, 28);
-            this.btnDelete.BackColor = System.Drawing.Color.LightCoral;
-            this.btnDelete.Anchor = anchorTopRight; 
-            this.btnDelete.Click += new System.EventHandler(this.btnDelete_Click);
-
-            // フォームへの追加配列に btnDataSync を反映させ、古い btnImport/btnExport は除去します
-            this.Controls.AddRange(new System.Windows.Forms.Control[]
-            {
-                this.lblSearch,    this.txtSearch,
-                this.btnSearch,    this.btnClear,
-                this.btnDetail,    this.btnAdd,
-                this.btnDataSync,  this.btnToggleNumeric, this.btnDelete, // ← btnDataSync に差替え
-                this.dgvData,
-                this.lblPageSize,  this.cmbPageSize,
-                this.btnFirstPage, this.btnPrevPage,
-                this.lblPageInfo,
-                this.btnNextPage,  this.btnLastPage,
-                this.lblStatus,
-            });
-
-            // ── DataGridView（上下左右に伸縮） ────────────
-            this.dgvData.Location =
-                new System.Drawing.Point(16, 52);
-            this.dgvData.Size =
-                new System.Drawing.Size(1240, 508);
-            this.dgvData.Anchor = anchorAll; // ✅ 全方向伸縮
-            this.dgvData.AllowUserToAddRows = false;
-            this.dgvData.ReadOnly = false;
-            this.dgvData.SelectionMode =
-                System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
-            this.dgvData.AutoSizeColumnsMode =
-                System.Windows.Forms.DataGridViewAutoSizeColumnsMode.None;
-            this.dgvData.ScrollBars =
-                System.Windows.Forms.ScrollBars.Both;
-            this.dgvData.ColumnHeadersHeight = 28;
-            this.dgvData.RowTemplate.Height = 24;
-
-            // ── ページングバー（下部固定） ─────────────────
-
-            // 表示件数ラベル
-            this.lblPageSize.Text = "表示件数:";
-            this.lblPageSize.Location =
-                new System.Drawing.Point(16, 568);
-            this.lblPageSize.Size =
-                new System.Drawing.Size(70, 23);
-            this.lblPageSize.TextAlign =
-                System.Drawing.ContentAlignment.MiddleLeft;
-            this.lblPageSize.Anchor = anchorBottomLeft;
-
-            // 表示件数コンボ
-            this.cmbPageSize.Location =
-                new System.Drawing.Point(90, 566);
-            this.cmbPageSize.Size =
-                new System.Drawing.Size(70, 23);
-            this.cmbPageSize.DropDownStyle =
-                System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.cmbPageSize.Anchor = anchorBottomLeft;
-            this.cmbPageSize.SelectedIndexChanged +=
-                new System.EventHandler(
-                    this.cmbPageSize_SelectedIndexChanged);
-
-            // 先頭ページボタン
-            this.btnFirstPage.Text = "⏮";
-            this.btnFirstPage.Location =
-                new System.Drawing.Point(460, 564);
-            this.btnFirstPage.Size =
-                new System.Drawing.Size(40, 28);
-            this.btnFirstPage.Anchor = anchorBottomLeft;
-            this.btnFirstPage.Click +=
-                new System.EventHandler(this.btnFirstPage_Click);
-
-            // 前ページボタン
-            this.btnPrevPage.Text = "◀";
-            this.btnPrevPage.Location =
-                new System.Drawing.Point(506, 564);
-            this.btnPrevPage.Size =
-                new System.Drawing.Size(40, 28);
-            this.btnPrevPage.Anchor = anchorBottomLeft;
-            this.btnPrevPage.Click +=
-                new System.EventHandler(this.btnPrevPage_Click);
-
-            // ページ情報ラベル（下・左右中央に追随）
-            this.lblPageInfo.Text = "1 / 1 ページ（0 件）";
-            this.lblPageInfo.Location =
-                new System.Drawing.Point(552, 568);
-            this.lblPageInfo.Size =
-                new System.Drawing.Size(200, 23);
-            this.lblPageInfo.TextAlign =
-                System.Drawing.ContentAlignment.MiddleCenter;
-            this.lblPageInfo.Anchor = anchorBottomLeft;
-
-            // 次ページボタン
-            this.btnNextPage.Text = "▶";
-            this.btnNextPage.Location =
-                new System.Drawing.Point(758, 564);
-            this.btnNextPage.Size =
-                new System.Drawing.Size(40, 28);
-            this.btnNextPage.Anchor = anchorBottomLeft;
-            this.btnNextPage.Click +=
-                new System.EventHandler(this.btnNextPage_Click);
-
-            // 最終ページボタン
-            this.btnLastPage.Text = "⏭";
-            this.btnLastPage.Location =
-                new System.Drawing.Point(804, 564);
-            this.btnLastPage.Size =
-                new System.Drawing.Size(40, 28);
-            this.btnLastPage.Anchor = anchorBottomLeft;
-            this.btnLastPage.Click +=
-                new System.EventHandler(this.btnLastPage_Click);
-
-            // ── ステータスバー（下・左右に伸縮） ──────────
-            this.lblStatus.Location =
-                new System.Drawing.Point(16, 604);
-            this.lblStatus.Size =
-                new System.Drawing.Size(1240, 23);
-            this.lblStatus.Text = "準備完了";
-            this.lblStatus.Anchor = anchorBottomLeftRight; // ✅ 下・横伸縮
-
-            this.Controls.AddRange(new System.Windows.Forms.Control[]
-            {
-                this.lblSearch,    this.txtSearch,
-                this.btnSearch,    this.btnClear,
-                this.btnDetail,    this.btnAdd,
-                this.btnDataSync,
-                this.btnToggleNumeric, this.btnDelete,
-                this.dgvData,
-                this.lblPageSize,  this.cmbPageSize,
-                this.btnFirstPage, this.btnPrevPage,
-                this.lblPageInfo,
-                this.btnNextPage,  this.btnLastPage,
-                this.lblStatus,
-            });
-
-            this.ResumeLayout(false);
+            // 
+            lblSearch.Location = new Point(16, 18);
+            lblSearch.Name = "lblSearch";
+            lblSearch.Size = new Size(40, 23);
+            lblSearch.TabIndex = 0;
+            lblSearch.Text = "検索:";
+            // 
+            // txtSearch
+            // 
+            txtSearch.Location = new Point(62, 15);
+            txtSearch.Name = "txtSearch";
+            txtSearch.Size = new Size(160, 23);
+            txtSearch.TabIndex = 1;
+            txtSearch.KeyDown += txtSearch_KeyDown;
+            // 
+            // btnSearch
+            // 
+            btnSearch.Location = new Point(346, 13);
+            btnSearch.Name = "btnSearch";
+            btnSearch.Size = new Size(100, 28);
+            btnSearch.TabIndex = 3;
+            btnSearch.Text = "🔍 検索";
+            btnSearch.Click += btnSearch_Click;
+            // 
+            // btnClear
+            // 
+            btnClear.Location = new Point(452, 13);
+            btnClear.Name = "btnClear";
+            btnClear.Size = new Size(80, 28);
+            btnClear.TabIndex = 4;
+            btnClear.Text = "クリア";
+            btnClear.Click += btnClear_Click;
+            // 
+            // btnDetail
+            // 
+            btnDetail.BackColor = Color.LightYellow;
+            btnDetail.Enabled = false;
+            btnDetail.Location = new Point(538, 13);
+            btnDetail.Name = "btnDetail";
+            btnDetail.Size = new Size(120, 28);
+            btnDetail.TabIndex = 5;
+            btnDetail.Text = "📋 案件詳細";
+            btnDetail.UseVisualStyleBackColor = false;
+            btnDetail.Click += btnDetail_Click;
+            // 
+            // btnAdd
+            // 
+            btnAdd.BackColor = Color.LightGreen;
+            btnAdd.Location = new Point(664, 13);
+            btnAdd.Name = "btnAdd";
+            btnAdd.Size = new Size(120, 28);
+            btnAdd.TabIndex = 6;
+            btnAdd.Text = "➕ 新規追加";
+            btnAdd.UseVisualStyleBackColor = false;
+            btnAdd.Click += btnAdd_Click;
+            // 
+            // btnDataSync
+            // 
+            btnDataSync.BackColor = Color.LightGray;
+            btnDataSync.Location = new Point(790, 13);
+            btnDataSync.Name = "btnDataSync";
+            btnDataSync.Size = new Size(140, 28);
+            btnDataSync.TabIndex = 7;
+            btnDataSync.Text = "⚙ データ管理";
+            btnDataSync.UseVisualStyleBackColor = false;
+            btnDataSync.Click += btnDataSync_Click;
+            // 
+            // btnToggleNumeric
+            // 
+            btnToggleNumeric.BackColor = Color.LightCyan;
+            btnToggleNumeric.Location = new Point(940, 13);
+            btnToggleNumeric.Name = "btnToggleNumeric";
+            btnToggleNumeric.Size = new Size(130, 28);
+            btnToggleNumeric.TabIndex = 8;
+            btnToggleNumeric.Text = "🔢 数値モード";
+            btnToggleNumeric.UseVisualStyleBackColor = false;
+            btnToggleNumeric.Click += btnToggleNumeric_Click;
+            // 
+            // btnDelete
+            // 
+            btnDelete.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            btnDelete.BackColor = Color.LightCoral;
+            btnDelete.Location = new Point(1160, 13);
+            btnDelete.Name = "btnDelete";
+            btnDelete.Size = new Size(96, 28);
+            btnDelete.TabIndex = 9;
+            btnDelete.Text = "🗑 削除";
+            btnDelete.UseVisualStyleBackColor = false;
+            btnDelete.Click += btnDelete_Click;
+            // 
+            // dgvData
+            // 
+            dgvData.AllowUserToAddRows = false;
+            dgvData.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            dgvData.ColumnHeadersHeight = 28;
+            dgvData.Location = new Point(16, 52);
+            dgvData.Name = "dgvData";
+            dgvData.RowTemplate.Height = 24;
+            dgvData.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            dgvData.Size = new Size(1240, 508);
+            dgvData.TabIndex = 10;
+            // 
+            // lblStatus
+            // 
+            lblStatus.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            lblStatus.Location = new Point(16, 604);
+            lblStatus.Name = "lblStatus";
+            lblStatus.Size = new Size(1240, 23);
+            lblStatus.TabIndex = 18;
+            lblStatus.Text = "準備完了";
+            // 
+            // btnFirstPage
+            // 
+            btnFirstPage.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+            btnFirstPage.Location = new Point(460, 564);
+            btnFirstPage.Name = "btnFirstPage";
+            btnFirstPage.Size = new Size(40, 28);
+            btnFirstPage.TabIndex = 13;
+            btnFirstPage.Text = "⏮";
+            btnFirstPage.Click += btnFirstPage_Click;
+            // 
+            // btnPrevPage
+            // 
+            btnPrevPage.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+            btnPrevPage.Location = new Point(506, 564);
+            btnPrevPage.Name = "btnPrevPage";
+            btnPrevPage.Size = new Size(40, 28);
+            btnPrevPage.TabIndex = 14;
+            btnPrevPage.Text = "◀";
+            btnPrevPage.Click += btnPrevPage_Click;
+            // 
+            // btnNextPage
+            // 
+            btnNextPage.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+            btnNextPage.Location = new Point(758, 564);
+            btnNextPage.Name = "btnNextPage";
+            btnNextPage.Size = new Size(40, 28);
+            btnNextPage.TabIndex = 16;
+            btnNextPage.Text = "▶";
+            btnNextPage.Click += btnNextPage_Click;
+            // 
+            // btnLastPage
+            // 
+            btnLastPage.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+            btnLastPage.Location = new Point(804, 564);
+            btnLastPage.Name = "btnLastPage";
+            btnLastPage.Size = new Size(40, 28);
+            btnLastPage.TabIndex = 17;
+            btnLastPage.Text = "⏭";
+            btnLastPage.Click += btnLastPage_Click;
+            // 
+            // lblPageInfo
+            // 
+            lblPageInfo.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+            lblPageInfo.Location = new Point(552, 568);
+            lblPageInfo.Name = "lblPageInfo";
+            lblPageInfo.Size = new Size(200, 23);
+            lblPageInfo.TabIndex = 15;
+            lblPageInfo.Text = "1 / 1 ページ（0 件）";
+            lblPageInfo.TextAlign = ContentAlignment.MiddleCenter;
+            // 
+            // cmbPageSize
+            // 
+            cmbPageSize.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+            cmbPageSize.DropDownStyle = ComboBoxStyle.DropDownList;
+            cmbPageSize.Location = new Point(90, 566);
+            cmbPageSize.Name = "cmbPageSize";
+            cmbPageSize.Size = new Size(70, 23);
+            cmbPageSize.TabIndex = 12;
+            cmbPageSize.SelectedIndexChanged += cmbPageSize_SelectedIndexChanged;
+            // 
+            // lblPageSize
+            // 
+            lblPageSize.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+            lblPageSize.Location = new Point(16, 568);
+            lblPageSize.Name = "lblPageSize";
+            lblPageSize.Size = new Size(70, 23);
+            lblPageSize.TabIndex = 11;
+            lblPageSize.Text = "表示件数:";
+            lblPageSize.TextAlign = ContentAlignment.MiddleLeft;
+            // 
+            // chkFilterProcessing
+            // 
+            chkFilterProcessing.Location = new Point(230, 16);
+            chkFilterProcessing.Name = "chkFilterProcessing";
+            chkFilterProcessing.Size = new Size(110, 23);
+            chkFilterProcessing.TabIndex = 2;
+            chkFilterProcessing.Text = "処理中のみ";
+            chkFilterProcessing.Click += chkFilterProcessing_CheckedChanged;
+            // 
+            // MainForm
+            // 
+            ClientSize = new Size(1264, 641);
+            Controls.Add(chkFilterProcessing);
+            Controls.Add(lblSearch);
+            Controls.Add(txtSearch);
+            Controls.Add(btnSearch);
+            Controls.Add(btnClear);
+            Controls.Add(btnDetail);
+            Controls.Add(btnAdd);
+            Controls.Add(btnDataSync);
+            Controls.Add(btnToggleNumeric);
+            Controls.Add(btnDelete);
+            Controls.Add(dgvData);
+            Controls.Add(lblPageSize);
+            Controls.Add(cmbPageSize);
+            Controls.Add(btnFirstPage);
+            Controls.Add(btnPrevPage);
+            Controls.Add(lblPageInfo);
+            Controls.Add(btnNextPage);
+            Controls.Add(btnLastPage);
+            Controls.Add(lblStatus);
+            Icon = (Icon)resources.GetObject("$this.Icon");
+            MinimumSize = new Size(900, 500);
+            Name = "MainForm";
+            StartPosition = FormStartPosition.CenterScreen;
+            Text = "M&A案件管理";
+            ((System.ComponentModel.ISupportInitialize)dgvData).EndInit();
+            ResumeLayout(false);
+            PerformLayout();
         }
 
         protected override void Dispose(bool disposing)

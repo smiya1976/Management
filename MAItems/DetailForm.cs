@@ -829,23 +829,73 @@ namespace MAItems
         private void btnPasteFromMail_Click(object? sender, EventArgs e)
         {
             string mailBody = Clipboard.GetText();
-            if (string.IsNullOrWhiteSpace(mailBody))
-            {
-                SetStatus("⚠ クリップボードにテキストがありません", isError: true);
-                return;
-            }
+            if (string.IsNullOrWhiteSpace(mailBody)) { SetStatus("⚠ クリップボードにテキストがありません", isError: true); return; }
 
             var parser = MailParserFactory.GetParser(mailBody);
-            if (parser == null)
+            if (parser == null) { SetStatus("⚠ 対応する仲介会社のフォーマットが見つかりません", isError: true); return; }
+
+            // 変更：パーサーから複数案件のリストを受け取る
+            List<ParsedDeal> parsedList = parser.Parse(mailBody);
+
+            if (parsedList.Count == 0) { SetStatus("⚠ 案件情報を抽出できませんでした", isError: true); return; }
+
+            // 1件目は現在の画面（テキストボックス）に適用する
+            ApplyParsedDeal(parsedList[0]);
+
+            // 2件目以降が存在する場合は確認ダイアログを出す
+            if (parsedList.Count > 1)
             {
-                SetStatus("⚠ 対応する仲介会社のフォーマットが見つかりません", isError: true);
-                return;
+                var confirm = MessageBox.Show(
+                    $"メールから {parsedList.Count} 件の案件が検出されました。\n\n" +
+                    "1件目を現在の画面に入力し、残りの案件をデータベースに新規追加登録しますか？",
+                    "複数案件の取り込み", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+                if (confirm == DialogResult.Yes)
+                {
+                    int addedCount = 0;
+                    for (int i = 1; i < parsedList.Count; i++)
+                    {
+                        // 2件目以降を新しいDealモデルに詰め替えてDBへ保存
+                        var newDeal = new Deal();
+                        var p = parsedList[i];
+
+                        newDeal.InputDate = p.InputDate ?? "";
+                        newDeal.Route = p.Route ?? "";
+                        newDeal.BrokerCompany = p.BrokerCompany ?? "";
+                        newDeal.Title = p.Title ?? "";
+                        newDeal.DealId = p.DealId ?? "";
+                        newDeal.BusinessContent = p.BusinessContent ?? "";
+                        newDeal.Area = p.Area ?? "";
+                        newDeal.Revenue = p.Revenue ?? "";
+                        newDeal.OperatingProfit = p.OperatingProfit ?? "";
+                        newDeal.EBITDA = p.EBITDA ?? "";
+                        newDeal.NetAssets = p.NetAssets ?? "";
+                        newDeal.TotalAssets = p.TotalAssets ?? "";
+                        newDeal.NetCashDebt = p.NetCashDebt ?? "";
+                        newDeal.CashEquivalents = p.CashEquivalents ?? "";
+                        newDeal.InterestBearingDebt = p.InterestBearingDebt ?? "";
+                        newDeal.EmployeeCount = p.EmployeeCount ?? "";
+                        newDeal.Features = p.Features ?? "";
+                        newDeal.AskingPrice = p.AskingPrice ?? "";
+                        newDeal.TransferType = p.TransferType ?? "";
+                        newDeal.TransferReason = p.TransferReason ?? "";
+                        newDeal.TransferConditions = p.TransferConditions ?? "";
+                        newDeal.Status = p.Status ?? "";
+
+                        _dealRepo.AddDeal(newDeal);
+                        addedCount++;
+                    }
+                    SetStatus($"✔ 1件目を画面に入力し、{addedCount}件の案件をデータベースに新規追加しました", false);
+                }
+                else
+                {
+                    SetStatus("✔ 1件目のみを画面に入力しました", false);
+                }
             }
-
-            ParsedDeal parsed = parser.Parse(mailBody);
-            ApplyParsedDeal(parsed);
-
-            SetStatus($"✔ メール本文を取り込みました（{parsed.BrokerCompany}）", isError: false);
+            else
+            {
+                SetStatus($"✔ メール本文を取り込みました（{parsedList[0].BrokerCompany}）", false);
+            }
         }
 
         private void ApplyParsedDeal(ParsedDeal parsed)
