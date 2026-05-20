@@ -62,16 +62,199 @@ namespace MAItems.Database
         public void UpsertValuationData(ValuationData v)
         {
             using var conn = _context.GetConnection();
-            string sql = @"INSERT INTO ValuationData (DealId, NetAssetValue, NetAssetNote, EBITDABase, EBITDABaseYear, EBITDAMultiple, EBITDANetCashDebt, EBITDANote, DCFDiscountRate, DCFTerminalGrowth, DCFEV, DCFNetCashDebt, DCFNote, NOI, CapRate, DirectNetCashDebt, DirectNote, EBITDAEquityValue, DCFEquityValue, DirectEquityValue, ValuationNote) VALUES (@DealId, @NetAssetValue, @NetAssetNote, @EBITDABase, @EBITDABaseYear, @EBITDAMultiple, @EBITDANetCashDebt, @EBITDANote, @DCFDiscountRate, @DCFTerminalGrowth, @DCFEV, @DCFNetCashDebt, @DCFNote, @NOI, @CapRate, @DirectNetCashDebt, @DirectNote, @EBITDAEquityValue, @DCFEquityValue, @DirectEquityValue, @ValuationNote) ON CONFLICT(DealId) DO UPDATE SET NetAssetValue=excluded.NetAssetValue, NetAssetNote=excluded.NetAssetNote, EBITDABase=excluded.EBITDABase, EBITDABaseYear=excluded.EBITDABaseYear, EBITDAMultiple=excluded.EBITDAMultiple, EBITDANetCashDebt=excluded.EBITDANetCashDebt, EBITDANote=excluded.EBITDANote, DCFDiscountRate=excluded.DCFDiscountRate, DCFTerminalGrowth=excluded.DCFTerminalGrowth, DCFEV=excluded.DCFEV, DCFNetCashDebt=excluded.DCFNetCashDebt, DCFNote=excluded.DCFNote, NOI=excluded.NOI, CapRate=excluded.CapRate, DirectNetCashDebt=excluded.DirectNetCashDebt, DirectNote=excluded.DirectNote, EBITDAEquityValue=excluded.EBITDAEquityValue, DCFEquityValue=excluded.DCFEquityValue, DirectEquityValue=excluded.DirectEquityValue, ValuationNote=excluded.ValuationNote;";
+
+            // ── 変更: INSERT文とUPDATE文に、9つの新しい項目を追加 ──
+            string sql = @"
+                INSERT INTO ValuationData (
+                    DealId, NetAssetValue, NetAssetNote, EBITDABase, EBITDABaseYear, EBITDAMultiple, EBITDANetCashDebt, EBITDANote, 
+                    DCFDiscountRate, DCFTerminalGrowth, DCFEV, DCFNetCashDebt, DCFNote, NOI, CapRate, DirectNetCashDebt, DirectNote, 
+                    EBITDAEquityValue, DCFEquityValue, DirectEquityValue, ValuationNote,
+                    CashAndDeposits, MarketableSecurities, InsuranceReserves, OtherAssets, WorkingCapitalMonths,
+                    ShortTermDebt, LongTermDebt, LeaseObligations, OtherLiabilities
+                ) VALUES (
+                    @DealId, @NetAssetValue, @NetAssetNote, @EBITDABase, @EBITDABaseYear, @EBITDAMultiple, @EBITDANetCashDebt, @EBITDANote, 
+                    @DCFDiscountRate, @DCFTerminalGrowth, @DCFEV, @DCFNetCashDebt, @DCFNote, @NOI, @CapRate, @DirectNetCashDebt, @DirectNote, 
+                    @EBITDAEquityValue, @DCFEquityValue, @DirectEquityValue, @ValuationNote,
+                    @CashAndDeposits, @MarketableSecurities, @InsuranceReserves, @OtherAssets, @WorkingCapitalMonths,
+                    @ShortTermDebt, @LongTermDebt, @LeaseObligations, @OtherLiabilities
+                ) ON CONFLICT(DealId) DO UPDATE SET 
+                    NetAssetValue=excluded.NetAssetValue, NetAssetNote=excluded.NetAssetNote, EBITDABase=excluded.EBITDABase, 
+                    EBITDABaseYear=excluded.EBITDABaseYear, EBITDAMultiple=excluded.EBITDAMultiple, EBITDANetCashDebt=excluded.EBITDANetCashDebt, 
+                    EBITDANote=excluded.EBITDANote, DCFDiscountRate=excluded.DCFDiscountRate, DCFTerminalGrowth=excluded.DCFTerminalGrowth, 
+                    DCFEV=excluded.DCFEV, DCFNetCashDebt=excluded.DCFNetCashDebt, DCFNote=excluded.DCFNote, NOI=excluded.NOI, 
+                    CapRate=excluded.CapRate, DirectNetCashDebt=excluded.DirectNetCashDebt, DirectNote=excluded.DirectNote, 
+                    EBITDAEquityValue=excluded.EBITDAEquityValue, DCFEquityValue=excluded.DCFEquityValue, DirectEquityValue=excluded.DirectEquityValue, 
+                    ValuationNote=excluded.ValuationNote,
+                    CashAndDeposits=excluded.CashAndDeposits, MarketableSecurities=excluded.MarketableSecurities, 
+                    InsuranceReserves=excluded.InsuranceReserves, OtherAssets=excluded.OtherAssets, WorkingCapitalMonths=excluded.WorkingCapitalMonths,
+                    ShortTermDebt=excluded.ShortTermDebt, LongTermDebt=excluded.LongTermDebt, LeaseObligations=excluded.LeaseObligations, OtherLiabilities=excluded.OtherLiabilities;";
+
             using var cmd = new SqliteCommand(sql, conn);
-            cmd.Parameters.AddWithValue("@DealId", v.DealId); cmd.Parameters.AddWithValue("@NetAssetNote", v.NetAssetNote); cmd.Parameters.AddWithValue("@EBITDABaseYear", v.EBITDABaseYear); cmd.Parameters.AddWithValue("@EBITDANote", v.EBITDANote); cmd.Parameters.AddWithValue("@DCFNote", v.DCFNote); cmd.Parameters.AddWithValue("@DirectNote", v.DirectNote); cmd.Parameters.AddWithValue("@ValuationNote", v.ValuationNote);
-            DbHelperUtils.BindReal(cmd, "@NetAssetValue", v.NetAssetValue); DbHelperUtils.BindReal(cmd, "@EBITDABase", v.EBITDABase); DbHelperUtils.BindReal(cmd, "@EBITDAMultiple", v.EBITDAMultiple); DbHelperUtils.BindReal(cmd, "@EBITDANetCashDebt", v.EBITDANetCashDebt); DbHelperUtils.BindReal(cmd, "@DCFDiscountRate", v.DCFDiscountRate); DbHelperUtils.BindReal(cmd, "@DCFTerminalGrowth", v.DCFTerminalGrowth); DbHelperUtils.BindReal(cmd, "@DCFEV", v.DCFEV); DbHelperUtils.BindReal(cmd, "@DCFNetCashDebt", v.DCFNetCashDebt); DbHelperUtils.BindReal(cmd, "@NOI", v.NOI); DbHelperUtils.BindReal(cmd, "@CapRate", v.CapRate); DbHelperUtils.BindReal(cmd, "@DirectNetCashDebt", v.DirectNetCashDebt); DbHelperUtils.BindReal(cmd, "@EBITDAEquityValue", v.EBITDAEquityValue); DbHelperUtils.BindReal(cmd, "@DCFEquityValue", v.DCFEquityValue); DbHelperUtils.BindReal(cmd, "@DirectEquityValue", v.DirectEquityValue);
+
+            // 既存項目のバインド
+            cmd.Parameters.AddWithValue("@DealId", v.DealId); cmd.Parameters.AddWithValue("@NetAssetNote", v.NetAssetNote ?? "");
+            cmd.Parameters.AddWithValue("@EBITDABaseYear", v.EBITDABaseYear ?? ""); cmd.Parameters.AddWithValue("@EBITDANote", v.EBITDANote ?? "");
+            cmd.Parameters.AddWithValue("@DCFNote", v.DCFNote ?? ""); cmd.Parameters.AddWithValue("@DirectNote", v.DirectNote ?? "");
+            cmd.Parameters.AddWithValue("@ValuationNote", v.ValuationNote ?? "");
+            DbHelperUtils.BindReal(cmd, "@NetAssetValue", v.NetAssetValue); DbHelperUtils.BindReal(cmd, "@EBITDABase", v.EBITDABase);
+            DbHelperUtils.BindReal(cmd, "@EBITDAMultiple", v.EBITDAMultiple); DbHelperUtils.BindReal(cmd, "@EBITDANetCashDebt", v.EBITDANetCashDebt);
+            DbHelperUtils.BindReal(cmd, "@DCFDiscountRate", v.DCFDiscountRate); DbHelperUtils.BindReal(cmd, "@DCFTerminalGrowth", v.DCFTerminalGrowth);
+            DbHelperUtils.BindReal(cmd, "@DCFEV", v.DCFEV); DbHelperUtils.BindReal(cmd, "@DCFNetCashDebt", v.DCFNetCashDebt);
+            DbHelperUtils.BindReal(cmd, "@NOI", v.NOI); DbHelperUtils.BindReal(cmd, "@CapRate", v.CapRate);
+            DbHelperUtils.BindReal(cmd, "@DirectNetCashDebt", v.DirectNetCashDebt); DbHelperUtils.BindReal(cmd, "@EBITDAEquityValue", v.EBITDAEquityValue);
+            DbHelperUtils.BindReal(cmd, "@DCFEquityValue", v.DCFEquityValue); DbHelperUtils.BindReal(cmd, "@DirectEquityValue", v.DirectEquityValue);
+
+            // ── 変更: 追加項目のバインド ──
+            DbHelperUtils.BindReal(cmd, "@CashAndDeposits", v.CashAndDeposits);
+            DbHelperUtils.BindReal(cmd, "@MarketableSecurities", v.MarketableSecurities);
+            DbHelperUtils.BindReal(cmd, "@InsuranceReserves", v.InsuranceReserves);
+            DbHelperUtils.BindReal(cmd, "@OtherAssets", v.OtherAssets);
+            DbHelperUtils.BindReal(cmd, "@WorkingCapitalMonths", v.WorkingCapitalMonths);
+            DbHelperUtils.BindReal(cmd, "@ShortTermDebt", v.ShortTermDebt);
+            DbHelperUtils.BindReal(cmd, "@LongTermDebt", v.LongTermDebt);
+            DbHelperUtils.BindReal(cmd, "@LeaseObligations", v.LeaseObligations);
+            DbHelperUtils.BindReal(cmd, "@OtherLiabilities", v.OtherLiabilities);
+
             cmd.ExecuteNonQuery();
         }
 
+        // ══════════════════════════════════════════════════════
+        // 純資産法 修正項目 (NetAssetAdjustments) の処理
+        // ══════════════════════════════════════════════════════
+        public List<NetAssetAdjustment> GetNetAssetAdjustments(long dealId)
+        {
+            var list = new List<NetAssetAdjustment>();
+            using var conn = _context.GetConnection();
+            using var cmd = new SqliteCommand("SELECT * FROM NetAssetAdjustments WHERE DealId = @DealId ORDER BY AdjustType, Id;", conn);
+            cmd.Parameters.AddWithValue("@DealId", dealId);
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                list.Add(new NetAssetAdjustment
+                {
+                    Id = reader.GetInt64(0),
+                    DealId = reader.GetInt64(1),
+                    AdjustType = reader.GetInt32(2),
+                    ItemName = DbHelperUtils.StrD(reader, "ItemName"),
+                    Amount = reader.GetDouble(4),
+                    Remarks = DbHelperUtils.StrD(reader, "Remarks")
+                });
+            }
+            return list;
+        }
+
+        public void SaveNetAssetAdjustments(long dealId, List<NetAssetAdjustment> adjustments)
+        {
+            using var conn = _context.GetConnection();
+            using var tx = conn.BeginTransaction();
+
+            // 古いデータを一度クリア
+            using (var del = new SqliteCommand("DELETE FROM NetAssetAdjustments WHERE DealId = @DealId;", conn, tx))
+            {
+                del.Parameters.AddWithValue("@DealId", dealId);
+                del.ExecuteNonQuery();
+            }
+
+            // 新しいデータを一括登録
+            string sql = "INSERT INTO NetAssetAdjustments (DealId, AdjustType, ItemName, Amount, Remarks) VALUES (@DealId, @AdjustType, @ItemName, @Amount, @Remarks);";
+            foreach (var a in adjustments)
+            {
+                using var cmd = new SqliteCommand(sql, conn, tx);
+                cmd.Parameters.AddWithValue("@DealId", dealId); cmd.Parameters.AddWithValue("@AdjustType", a.AdjustType);
+                cmd.Parameters.AddWithValue("@ItemName", a.ItemName ?? ""); cmd.Parameters.AddWithValue("@Amount", a.Amount); cmd.Parameters.AddWithValue("@Remarks", a.Remarks ?? "");
+                cmd.ExecuteNonQuery();
+            }
+            tx.Commit();
+        }
+
+        // ══════════════════════════════════════════════════════
+        // DCF法 将来計画 (DcfProjections) の処理
+        // ══════════════════════════════════════════════════════
+        public List<DcfProjection> GetDcfProjections(long dealId)
+        {
+            var list = new List<DcfProjection>();
+            using var conn = _context.GetConnection();
+            using var cmd = new SqliteCommand("SELECT * FROM DcfProjections WHERE DealId = @DealId ORDER BY YearIndex ASC;", conn);
+            cmd.Parameters.AddWithValue("@DealId", dealId);
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                list.Add(new DcfProjection
+                {
+                    Id = reader.GetInt64(0),
+                    DealId = reader.GetInt64(1),
+                    YearIndex = reader.GetInt32(2),
+                    Revenue = DbHelperUtils.RealN(reader, "Revenue"),
+                    OpProfit = DbHelperUtils.RealN(reader, "OpProfit"),
+                    TaxRate = DbHelperUtils.RealN(reader, "TaxRate"),
+                    DiscountRate = DbHelperUtils.RealN(reader, "DiscountRate"),
+                    TerminalGrowth = DbHelperUtils.RealN(reader, "TerminalGrowth")
+                });
+            }
+            return list;
+        }
+
+        public void SaveDcfProjections(long dealId, List<DcfProjection> projections)
+        {
+            using var conn = _context.GetConnection();
+            using var tx = conn.BeginTransaction();
+            using (var del = new SqliteCommand("DELETE FROM DcfProjections WHERE DealId = @DealId;", conn, tx))
+            {
+                del.Parameters.AddWithValue("@DealId", dealId); del.ExecuteNonQuery();
+            }
+
+            string sql = "INSERT INTO DcfProjections (DealId, YearIndex, Revenue, OpProfit, TaxRate, DiscountRate, TerminalGrowth) VALUES (@DealId, @YearIndex, @Revenue, @OpProfit, @TaxRate, @DiscountRate, @TerminalGrowth);";
+            foreach (var p in projections)
+            {
+                using var cmd = new SqliteCommand(sql, conn, tx);
+                cmd.Parameters.AddWithValue("@DealId", dealId); cmd.Parameters.AddWithValue("@YearIndex", p.YearIndex);
+                DbHelperUtils.BindReal(cmd, "@Revenue", p.Revenue); DbHelperUtils.BindReal(cmd, "@OpProfit", p.OpProfit); DbHelperUtils.BindReal(cmd, "@TaxRate", p.TaxRate); DbHelperUtils.BindReal(cmd, "@DiscountRate", p.DiscountRate); DbHelperUtils.BindReal(cmd, "@TerminalGrowth", p.TerminalGrowth);
+                cmd.ExecuteNonQuery();
+            }
+            tx.Commit();
+        }
+
+
+
         private static CompanyProfile MapCompanyProfile(SqliteDataReader r) => new CompanyProfile { Id = r.GetInt64(r.GetOrdinal("Id")), DealId = r.GetInt64(r.GetOrdinal("DealId")), CompanyName = DbHelperUtils.StrD(r, "CompanyName"), CompanyNameSub = DbHelperUtils.StrD(r, "CompanyNameSub"), HeadOfficeAddress = DbHelperUtils.StrD(r, "HeadOfficeAddress"), FactoryAddress = DbHelperUtils.StrD(r, "FactoryAddress"), OtherOffice = DbHelperUtils.StrD(r, "OtherOffice"), Founded = DbHelperUtils.StrD(r, "Founded"), Founded2 = DbHelperUtils.StrD(r, "Founded2"), Capital = DbHelperUtils.StrD(r, "Capital"), RepresentativeName = DbHelperUtils.StrD(r, "RepresentativeName"), RepresentativeProfile = DbHelperUtils.StrD(r, "RepresentativeProfile"), ShareholderInfo = DbHelperUtils.StrD(r, "ShareholderInfo"), BusinessDetail = DbHelperUtils.StrD(r, "BusinessDetail"), Revenue = DbHelperUtils.StrD(r, "Revenue"), Employees = DbHelperUtils.StrD(r, "Employees"), MainClients = DbHelperUtils.StrD(r, "MainClients"), MainSuppliers = DbHelperUtils.StrD(r, "MainSuppliers"), Certifications = DbHelperUtils.StrD(r, "Certifications"), GroupCompanies = DbHelperUtils.StrD(r, "GroupCompanies"), TransferReason = DbHelperUtils.StrD(r, "TransferReason"), Remarks = DbHelperUtils.StrD(r, "Remarks") };
         private static FinancialHighlight MapFinancialHighlight(SqliteDataReader r) => new FinancialHighlight { Id = r.GetInt64(r.GetOrdinal("Id")), DealId = r.GetInt64(r.GetOrdinal("DealId")), PeriodType = DbHelperUtils.StrD(r, "PeriodType"), PeriodOrder = r.GetInt32(r.GetOrdinal("PeriodOrder")), PeriodLabel = DbHelperUtils.StrD(r, "PeriodLabel"), Revenue = DbHelperUtils.RealN(r, "Revenue"), CostRate = DbHelperUtils.RealN(r, "CostRate"), GrossProfit = DbHelperUtils.RealN(r, "GrossProfit"), GrossProfitRate = DbHelperUtils.RealN(r, "GrossProfitRate"), SGA = DbHelperUtils.RealN(r, "SGA"), OperatingProfit = DbHelperUtils.RealN(r, "OperatingProfit"), OperatingProfitRate = DbHelperUtils.RealN(r, "OperatingProfitRate"), OrdinaryProfit = DbHelperUtils.RealN(r, "OrdinaryProfit"), NetIncome = DbHelperUtils.RealN(r, "NetIncome"), EBITDA = DbHelperUtils.RealN(r, "EBITDA"), Depreciation = DbHelperUtils.RealN(r, "Depreciation"), CapEx = DbHelperUtils.RealN(r, "CapEx"), CurrentAssets = DbHelperUtils.RealN(r, "CurrentAssets"), CashEquivalents = DbHelperUtils.RealN(r, "CashEquivalents"), AccountsReceivable = DbHelperUtils.RealN(r, "AccountsReceivable"), Inventory = DbHelperUtils.RealN(r, "Inventory"), OtherCurrentAssets = DbHelperUtils.RealN(r, "OtherCurrentAssets"), FixedAssets = DbHelperUtils.RealN(r, "FixedAssets"), TotalAssets = DbHelperUtils.RealN(r, "TotalAssets"), CurrentLiabilities = DbHelperUtils.RealN(r, "CurrentLiabilities"), AccountsPayable = DbHelperUtils.RealN(r, "AccountsPayable"), ShortTermDebt = DbHelperUtils.RealN(r, "ShortTermDebt"), OtherCurrentLiabilities = DbHelperUtils.RealN(r, "OtherCurrentLiabilities"), FixedLiabilities = DbHelperUtils.RealN(r, "FixedLiabilities"), LongTermDebt = DbHelperUtils.RealN(r, "LongTermDebt"), OtherFixedLiabilities = DbHelperUtils.RealN(r, "OtherFixedLiabilities"), TotalLiabilities = DbHelperUtils.RealN(r, "TotalLiabilities"), NetAssets = DbHelperUtils.RealN(r, "NetAssets"), RetainedEarnings = DbHelperUtils.RealN(r, "RetainedEarnings") };
-        private static ValuationData MapValuationData(SqliteDataReader r) => new ValuationData { Id = r.GetInt64(r.GetOrdinal("Id")), DealId = r.GetInt64(r.GetOrdinal("DealId")), NetAssetValue = DbHelperUtils.RealN(r, "NetAssetValue"), NetAssetNote = DbHelperUtils.StrD(r, "NetAssetNote"), EBITDABase = DbHelperUtils.RealN(r, "EBITDABase"), EBITDABaseYear = DbHelperUtils.StrD(r, "EBITDABaseYear"), EBITDAMultiple = DbHelperUtils.RealN(r, "EBITDAMultiple"), EBITDANetCashDebt = DbHelperUtils.RealN(r, "EBITDANetCashDebt"), EBITDANote = DbHelperUtils.StrD(r, "EBITDANote"), DCFDiscountRate = DbHelperUtils.RealN(r, "DCFDiscountRate"), DCFTerminalGrowth = DbHelperUtils.RealN(r, "DCFTerminalGrowth"), DCFEV = DbHelperUtils.RealN(r, "DCFEV"), DCFNetCashDebt = DbHelperUtils.RealN(r, "DCFNetCashDebt"), DCFNote = DbHelperUtils.StrD(r, "DCFNote"), NOI = DbHelperUtils.RealN(r, "NOI"), CapRate = DbHelperUtils.RealN(r, "CapRate"), DirectNetCashDebt = DbHelperUtils.RealN(r, "DirectNetCashDebt"), DirectNote = DbHelperUtils.StrD(r, "DirectNote"), EBITDAEquityValue = DbHelperUtils.RealN(r, "EBITDAEquityValue"), DCFEquityValue = DbHelperUtils.RealN(r, "DCFEquityValue"), DirectEquityValue = DbHelperUtils.RealN(r, "DirectEquityValue"), ValuationNote = DbHelperUtils.StrD(r, "ValuationNote") };
+        private static ValuationData MapValuationData(SqliteDataReader r) => new ValuationData
+        {
+            Id = r.GetInt64(r.GetOrdinal("Id")),
+            DealId = r.GetInt64(r.GetOrdinal("DealId")),
+            NetAssetValue = DbHelperUtils.RealN(r, "NetAssetValue"),
+            NetAssetNote = DbHelperUtils.StrD(r, "NetAssetNote"),
+            EBITDABase = DbHelperUtils.RealN(r, "EBITDABase"),
+            EBITDABaseYear = DbHelperUtils.StrD(r, "EBITDABaseYear"),
+            EBITDAMultiple = DbHelperUtils.RealN(r, "EBITDAMultiple"),
+            EBITDANetCashDebt = DbHelperUtils.RealN(r, "EBITDANetCashDebt"),
+            EBITDANote = DbHelperUtils.StrD(r, "EBITDANote"),
+            DCFDiscountRate = DbHelperUtils.RealN(r, "DCFDiscountRate"),
+            DCFTerminalGrowth = DbHelperUtils.RealN(r, "DCFTerminalGrowth"),
+            DCFEV = DbHelperUtils.RealN(r, "DCFEV"),
+            DCFNetCashDebt = DbHelperUtils.RealN(r, "DCFNetCashDebt"),
+            DCFNote = DbHelperUtils.StrD(r, "DCFNote"),
+            NOI = DbHelperUtils.RealN(r, "NOI"),
+            CapRate = DbHelperUtils.RealN(r, "CapRate"),
+            DirectNetCashDebt = DbHelperUtils.RealN(r, "DirectNetCashDebt"),
+            DirectNote = DbHelperUtils.StrD(r, "DirectNote"),
+            EBITDAEquityValue = DbHelperUtils.RealN(r, "EBITDAEquityValue"),
+            DCFEquityValue = DbHelperUtils.RealN(r, "DCFEquityValue"),
+            DirectEquityValue = DbHelperUtils.RealN(r, "DirectEquityValue"),
+            ValuationNote = DbHelperUtils.StrD(r, "ValuationNote"),
+
+            // ── 変更: DBからの読み込み時に9つの追加項目をセットする ──
+            CashAndDeposits = DbHelperUtils.HasColumn(r, "CashAndDeposits") ? DbHelperUtils.RealN(r, "CashAndDeposits") : null,
+            MarketableSecurities = DbHelperUtils.HasColumn(r, "MarketableSecurities") ? DbHelperUtils.RealN(r, "MarketableSecurities") : null,
+            InsuranceReserves = DbHelperUtils.HasColumn(r, "InsuranceReserves") ? DbHelperUtils.RealN(r, "InsuranceReserves") : null,
+            OtherAssets = DbHelperUtils.HasColumn(r, "OtherAssets") ? DbHelperUtils.RealN(r, "OtherAssets") : null,
+            WorkingCapitalMonths = DbHelperUtils.HasColumn(r, "WorkingCapitalMonths") ? DbHelperUtils.RealN(r, "WorkingCapitalMonths") : null,
+            ShortTermDebt = DbHelperUtils.HasColumn(r, "ShortTermDebt") ? DbHelperUtils.RealN(r, "ShortTermDebt") : null,
+            LongTermDebt = DbHelperUtils.HasColumn(r, "LongTermDebt") ? DbHelperUtils.RealN(r, "LongTermDebt") : null,
+            LeaseObligations = DbHelperUtils.HasColumn(r, "LeaseObligations") ? DbHelperUtils.RealN(r, "LeaseObligations") : null,
+            OtherLiabilities = DbHelperUtils.HasColumn(r, "OtherLiabilities") ? DbHelperUtils.RealN(r, "OtherLiabilities") : null
+        };
+
 
         private static void BindFinancialHighlight(SqliteCommand cmd, FinancialHighlight f)
         {

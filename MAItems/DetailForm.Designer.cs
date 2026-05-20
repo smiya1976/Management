@@ -44,99 +44,167 @@ namespace MAItems
 
         private void InitializeComponent()
         {
-            this.tabMain = new TabControl();
-            this.tabPage1 = new TabPage();
-            this.tabPage2 = new TabPage();
-            this.tabPage3 = new TabPage();
-            this.tabPage4 = new TabPage();
-            this.pnlHeader = new Panel();
-            this.lblIdValue = new Label();
-
-            this.btnPasteFromMail = new Button();
-            this.btnPrev = new Button();
-            this.btnNext = new Button();
-            this.btnSave = new Button();
-            this.btnClose = new Button();
-            this.lblStatus = new Label();
-
-            this.SuspendLayout();
-
-            this.Text = "案件詳細";
-            this.Size = new Size(860, 720);
-            this.MinimumSize = new Size(700, 600);
-            this.StartPosition = FormStartPosition.CenterParent;
-
-            this.pnlHeader.Location = new Point(0, 0);
-            this.pnlHeader.Size = new Size(860, 36);
-            this.pnlHeader.BackColor = Color.SteelBlue;
-            this.pnlHeader.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
-
-            this.lblIdValue.ForeColor = Color.White;
-            this.lblIdValue.Font = new Font("Yu Gothic UI", 12F, FontStyle.Bold);
-            this.lblIdValue.Location = new Point(12, 6);
-            this.lblIdValue.Size = new Size(600, 24);
-            this.pnlHeader.Controls.Add(this.lblIdValue);
-
-            this.tabMain.Location = new Point(0, 36);
-            this.tabMain.Size = new Size(844, 610);
-            this.tabMain.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
-
-            this.tabPage1.Text = "基本情報";
-            this.tabPage2.Text = "会社基礎情報";
-            this.tabPage3.Text = "財務ハイライト";
-            this.tabPage4.Text = "株式価値試算";
-
-            this.tabMain.Controls.Add(this.tabPage1);
-            this.tabMain.Controls.Add(this.tabPage2);
-            this.tabMain.Controls.Add(this.tabPage3);
-            this.tabMain.Controls.Add(this.tabPage4);
-
-            // フッターボタンの配置
-            this.btnPasteFromMail.Text = "📧 メールから取込";
-            this.btnPasteFromMail.Location = new Point(12, 652);
-            this.btnPasteFromMail.Size = new Size(130, 30);
-            this.btnPasteFromMail.BackColor = Color.LightSteelBlue;
-            this.btnPasteFromMail.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
-            this.btnPasteFromMail.Click += new EventHandler(this.btnPasteFromMail_Click);
-
-            this.btnPrev.Text = "◀ 前へ";
-            this.btnPrev.Location = new Point(356, 652);
-            this.btnPrev.Size = new Size(80, 30);
-            this.btnPrev.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
-            this.btnPrev.Click += new EventHandler(this.btnPrev_Click);
-
-            this.btnNext.Text = "次へ ▶";
-            this.btnNext.Location = new Point(442, 652);
-            this.btnNext.Size = new Size(80, 30);
-            this.btnNext.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
-            this.btnNext.Click += new EventHandler(this.btnNext_Click);
-
-            this.btnSave.Text = "💾 保存して閉じる";
-            this.btnSave.Location = new Point(528, 652);
-            this.btnSave.Size = new Size(160, 30);
-            this.btnSave.BackColor = Color.LightGreen;
-            this.btnSave.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
-            this.btnSave.Click += new EventHandler(this.btnSave_Click);
-
-            this.btnClose.Text = "✖ キャンセル";
-            this.btnClose.Location = new Point(694, 652);
-            this.btnClose.Size = new Size(130, 30);
-            this.btnClose.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
-            this.btnClose.Click += new EventHandler(this.btnClose_Click);
-
-            this.lblStatus.Location = new Point(12, 688);
-            this.lblStatus.Size = new Size(816, 23);
-            this.lblStatus.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
-
-            this.Controls.AddRange(new Control[] { this.pnlHeader, this.tabMain, this.btnPasteFromMail, this.btnPrev, this.btnNext, this.btnSave, this.btnClose, this.lblStatus });
-
-            BuildTab1();
-            BuildTab2();
-            BuildTab3();
-            BuildTab4();
-            BuildTab5();
-
-            this.ResumeLayout(false);
+            tabMain = new TabControl();
+            tabPage1 = new TabPage();
+            tabPage2 = new TabPage();
+            tabPage3 = new TabPage();
+            tabPage4 = new TabPage();
+            pnlHeader = new Panel();
+            lblIdValue = new Label();
+            btnPasteFromMail = new Button();
+            btnPrev = new Button();
+            btnNext = new Button();
+            btnSave = new Button();
+            btnClose = new Button();
+            lblStatus = new Label();
+            tabMain.SuspendLayout();
+            pnlHeader.SuspendLayout();
+            SuspendLayout();
+            // 
+            // tabMain
+            // 
+            tabMain.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            tabMain.Controls.Add(tabPage1);
+            tabMain.Controls.Add(tabPage2);
+            tabMain.Controls.Add(tabPage3);
+            tabMain.Controls.Add(tabPage4);
+            tabMain.Location = new Point(0, 36);
+            tabMain.Name = "tabMain";
+            tabMain.SelectedIndex = 0;
+            tabMain.Size = new Size(848, 630);
+            tabMain.TabIndex = 1;
+            // 
+            // tabPage1
+            // 
+            tabPage1.Location = new Point(4, 24);
+            tabPage1.Name = "tabPage1";
+            tabPage1.Size = new Size(840, 602);
+            tabPage1.TabIndex = 0;
+            tabPage1.Text = "基本情報";
+            // 
+            // tabPage2
+            // 
+            tabPage2.Location = new Point(4, 24);
+            tabPage2.Name = "tabPage2";
+            tabPage2.Size = new Size(836, 582);
+            tabPage2.TabIndex = 1;
+            tabPage2.Text = "会社基礎情報";
+            // 
+            // tabPage3
+            // 
+            tabPage3.Location = new Point(4, 24);
+            tabPage3.Name = "tabPage3";
+            tabPage3.Size = new Size(836, 582);
+            tabPage3.TabIndex = 2;
+            tabPage3.Text = "財務ハイライト";
+            // 
+            // tabPage4
+            // 
+            tabPage4.Location = new Point(4, 24);
+            tabPage4.Name = "tabPage4";
+            tabPage4.Size = new Size(836, 582);
+            tabPage4.TabIndex = 3;
+            tabPage4.Text = "株式価値試算";
+            // 
+            // pnlHeader
+            // 
+            pnlHeader.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            pnlHeader.BackColor = Color.SteelBlue;
+            pnlHeader.Controls.Add(lblIdValue);
+            pnlHeader.Location = new Point(0, 0);
+            pnlHeader.Name = "pnlHeader";
+            pnlHeader.Size = new Size(864, 36);
+            pnlHeader.TabIndex = 0;
+            // 
+            // lblIdValue
+            // 
+            lblIdValue.Font = new Font("Yu Gothic UI", 12F, FontStyle.Bold);
+            lblIdValue.ForeColor = Color.White;
+            lblIdValue.Location = new Point(12, 6);
+            lblIdValue.Name = "lblIdValue";
+            lblIdValue.Size = new Size(600, 24);
+            lblIdValue.TabIndex = 0;
+            // 
+            // btnPasteFromMail
+            // 
+            btnPasteFromMail.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+            btnPasteFromMail.BackColor = Color.LightSteelBlue;
+            btnPasteFromMail.Location = new Point(12, 669);
+            btnPasteFromMail.Name = "btnPasteFromMail";
+            btnPasteFromMail.Size = new Size(130, 30);
+            btnPasteFromMail.TabIndex = 2;
+            btnPasteFromMail.Text = "📧 メールから取込";
+            btnPasteFromMail.UseVisualStyleBackColor = false;
+            btnPasteFromMail.Click += btnPasteFromMail_Click;
+            // 
+            // btnPrev
+            // 
+            btnPrev.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            btnPrev.Location = new Point(360, 669);
+            btnPrev.Name = "btnPrev";
+            btnPrev.Size = new Size(80, 30);
+            btnPrev.TabIndex = 3;
+            btnPrev.Text = "◀ 前へ";
+            btnPrev.Click += btnPrev_Click;
+            // 
+            // btnNext
+            // 
+            btnNext.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            btnNext.Location = new Point(446, 669);
+            btnNext.Name = "btnNext";
+            btnNext.Size = new Size(80, 30);
+            btnNext.TabIndex = 4;
+            btnNext.Text = "次へ ▶";
+            btnNext.Click += btnNext_Click;
+            // 
+            // btnSave
+            // 
+            btnSave.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            btnSave.BackColor = Color.LightGreen;
+            btnSave.Location = new Point(532, 669);
+            btnSave.Name = "btnSave";
+            btnSave.Size = new Size(160, 30);
+            btnSave.TabIndex = 5;
+            btnSave.Text = "💾 保存して閉じる";
+            btnSave.UseVisualStyleBackColor = false;
+            btnSave.Click += btnSave_Click;
+            // 
+            // btnClose
+            // 
+            btnClose.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            btnClose.Location = new Point(698, 669);
+            btnClose.Name = "btnClose";
+            btnClose.Size = new Size(130, 30);
+            btnClose.TabIndex = 6;
+            btnClose.Text = "✖ キャンセル";
+            btnClose.Click += btnClose_Click;
+            // 
+            // lblStatus
+            // 
+            lblStatus.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            lblStatus.Location = new Point(12, 708);
+            lblStatus.Name = "lblStatus";
+            lblStatus.Size = new Size(820, 23);
+            lblStatus.TabIndex = 7;
+            // 
+            // DetailForm
+            // 
+            ClientSize = new Size(848, 701);
+            Controls.Add(pnlHeader);
+            Controls.Add(tabMain);
+            Controls.Add(btnPasteFromMail);
+            Controls.Add(btnPrev);
+            Controls.Add(btnNext);
+            Controls.Add(btnSave);
+            Controls.Add(btnClose);
+            Controls.Add(lblStatus);
+            MinimumSize = new Size(700, 600);
+            Name = "DetailForm";
+            StartPosition = FormStartPosition.CenterParent;
+            Text = "案件詳細";
+            tabMain.ResumeLayout(false);
+            pnlHeader.ResumeLayout(false);
+            ResumeLayout(false);
         }
 
         private void BuildTab1()
@@ -290,9 +358,6 @@ namespace MAItems
             this.txtValEBITDANet = AddValRow(pnlValuation, "ネットキャッシュ（千円）", ref y, lw, tw);
             this.txtValEBITDANote = AddValRow(pnlValuation, "備考", ref y, lw, tw, multiLine: true, height: 40);
             this.lblValEBITDAResult = AddResultLabel(pnlValuation, ref y, rw);
-            this.txtValEBITDA.TextChanged += new EventHandler(this.ValuationInput_Changed);
-            this.txtValMultiple.TextChanged += new EventHandler(this.ValuationInput_Changed);
-            this.txtValEBITDANet.TextChanged += new EventHandler(this.ValuationInput_Changed);
 
             y += 8; y = AddValuationSection(this.pnlValuation, "③ DCF法", y);
             this.txtValDCFRate = AddValRow(pnlValuation, "割引率（%）", ref y, lw, tw);
@@ -301,8 +366,6 @@ namespace MAItems
             this.txtValDCFNet = AddValRow(pnlValuation, "ネットキャッシュ（千円）", ref y, lw, tw);
             this.txtValDCFNote = AddValRow(pnlValuation, "備考", ref y, lw, tw, multiLine: true, height: 40);
             this.lblValDCFResult = AddResultLabel(pnlValuation, ref y, rw);
-            this.txtValDCFEV.TextChanged += new EventHandler(this.ValuationInput_Changed);
-            this.txtValDCFNet.TextChanged += new EventHandler(this.ValuationInput_Changed);
 
             y += 8; y = AddValuationSection(this.pnlValuation, "④ 直接還元法", y);
             this.txtValNOI = AddValRow(pnlValuation, "NOI（千円）", ref y, lw, tw);
@@ -310,9 +373,6 @@ namespace MAItems
             this.txtValDirectNet = AddValRow(pnlValuation, "ネットキャッシュ（千円）", ref y, lw, tw);
             this.txtValDirectNote = AddValRow(pnlValuation, "備考", ref y, lw, tw, multiLine: true, height: 40);
             this.lblValDirectResult = AddResultLabel(pnlValuation, ref y, rw);
-            this.txtValNOI.TextChanged += new EventHandler(this.ValuationInput_Changed);
-            this.txtValCapRate.TextChanged += new EventHandler(this.ValuationInput_Changed);
-            this.txtValDirectNet.TextChanged += new EventHandler(this.ValuationInput_Changed);
 
             y += 16;
             this.lblValSummary = new Label { Location = new Point(8, y), Size = new Size(790, 28), Font = new Font("Yu Gothic UI", 11F, FontStyle.Bold), ForeColor = Color.DarkBlue, Text = "試算結果" };

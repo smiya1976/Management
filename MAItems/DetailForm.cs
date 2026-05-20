@@ -53,7 +53,12 @@ namespace MAItems
             LoadTab1();
             LoadTab2();
             LoadTab3();
-            LoadTab4();
+            // 例: tabPageValuation という名前の空のタブページ（またはパネル）に、UIを流し込む
+            BuildValuationUI(tabPage4);
+
+            // 保存されたデータの展開と、財務ハイライトからの自動計算を実行
+            LoadValuationData();
+//            LoadTab4();
             LoadTab5();
         }
 
@@ -165,8 +170,8 @@ namespace MAItems
                 }
 
                 // Tab4: 株式価値試算
-                FormToValuation();
-                _financialRepo.UpsertValuationData(_valuation);
+                //FormToValuation();
+                //_financialRepo.UpsertValuationData(_valuation);
 
                 // 親フォームへ通知
                 SaveCompleted?.Invoke(this, EventArgs.Empty);
@@ -191,6 +196,82 @@ namespace MAItems
                 this.Close(); // 保存成功時のみフォームを閉じる
             }
         }
+
+        // ── 画面の入力内容をデータベースに保存する ──
+        private void SaveValuationData()
+        {
+            // 1. ValuationData（共通項目・各手法のパラメータ）の保存
+            _valuation.DealId = _deal.Id;
+
+            _valuation.CashAndDeposits = ParseD(txtCash.Text);
+            _valuation.WorkingCapitalMonths = ParseD(txtWCMonths.Text);
+            _valuation.ShortTermDebt = ParseD(txtShortDebt.Text);
+            _valuation.LongTermDebt = ParseD(txtLongDebt.Text);
+            _valuation.LeaseObligations = ParseD(txtLease.Text);
+            _valuation.OtherLiabilities = ParseD(txtOtherDebt.Text);
+
+            _valuation.NetAssetValue = ParseD(txtBookNetAsset.Text);
+            _valuation.EBITDABase = ParseD(txtEBITDA_Calc.Text);
+            _valuation.EBITDAMultiple = ParseD(txtEBITDAMultiple.Text);
+            _valuation.NOI = ParseD(txtOpProfit_Direct.Text);
+            _valuation.CapRate = ParseD(txtCapRate.Text);
+
+            // 算出された最終的な株式価値も保存しておく（一覧画面等での表示用）
+            _valuation.EBITDAEquityValue = ParseD(lblEquity_EBITDA.Text.Replace(" 千円", "").Replace(",", ""));
+            _valuation.DCFEquityValue = ParseD(lblEquity_DCF.Text.Replace(" 千円", "").Replace(",", ""));
+            _valuation.DirectEquityValue = ParseD(lblEquity_Direct.Text.Replace(" 千円", "").Replace(",", ""));
+
+            _financialRepo.UpsertValuationData(_valuation);
+
+            // 2. 純資産法 修正項目の保存
+            var adjustments = new List<NetAssetAdjustment>();
+
+            // 資産の修正 (AdjustType = 1)
+            foreach (DataGridViewRow r in dgvAssetAdj.Rows)
+            {
+                if (r.IsNewRow) continue;
+                adjustments.Add(new NetAssetAdjustment
+                {
+                    AdjustType = 1,
+                    ItemName = r.Cells["ItemName"].Value?.ToString() ?? "",
+                    Amount = ParseD(r.Cells["Amount"].Value),
+                    Remarks = r.Cells["Remarks"].Value?.ToString() ?? ""
+                });
+            }
+
+            // 負債の修正 (AdjustType = 2)
+            foreach (DataGridViewRow r in dgvLiabAdj.Rows)
+            {
+                if (r.IsNewRow) continue;
+                adjustments.Add(new NetAssetAdjustment
+                {
+                    AdjustType = 2,
+                    ItemName = r.Cells["ItemName"].Value?.ToString() ?? "",
+                    Amount = ParseD(r.Cells["Amount"].Value),
+                    Remarks = r.Cells["Remarks"].Value?.ToString() ?? ""
+                });
+            }
+            _financialRepo.SaveNetAssetAdjustments(_deal.Id, adjustments);
+
+            // 3. DCF法 将来計画の保存
+            var dcfProjections = new List<DcfProjection>();
+            foreach (DataGridViewRow r in dgvDcf.Rows)
+            {
+                if (r.IsNewRow) continue;
+                dcfProjections.Add(new DcfProjection
+                {
+                    YearIndex = r.Index,
+                    Revenue = ParseD(r.Cells["Revenue"].Value),
+                    OpProfit = ParseD(r.Cells["OpProfit"].Value),
+                    TaxRate = ParseD(r.Cells["TaxRate"].Value),
+                    DiscountRate = ParseD(r.Cells["DiscountRate"].Value),
+                    TerminalGrowth = ParseD(r.Cells["TerminalGrowth"].Value)
+                });
+            }
+            _financialRepo.SaveDcfProjections(_deal.Id, dcfProjections);
+        }
+
+
 
         #endregion
 
@@ -544,8 +625,10 @@ namespace MAItems
 
         #endregion
 
-        #region Tab 4: 株式価値試算
 
+        /*
+        #region Tab 4: 株式価値試算
+        
         private void LoadTab4()
         {
             var v = _financialRepo.GetValuationData(_deal.Id) ?? new ValuationData { DealId = _deal.Id };
@@ -698,6 +781,7 @@ namespace MAItems
         private static double? Parse(string s) { string cleaned = s.Replace(",", "").Trim(); return double.TryParse(cleaned, out double d) ? d : null; }
 
         #endregion
+        */
 
         #region Tab 5: 添付資料
 

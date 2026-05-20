@@ -19,7 +19,7 @@ namespace MAItems.Database
         {
             var list = new List<Deal>();
             using var conn = _context.GetConnection();
-            using var cmd = new SqliteCommand("SELECT * FROM Deals ORDER BY Id;", conn);
+            using var cmd = new SqliteCommand("SELECT * FROM Deals ORDER BY LastUpdatedAt, Id;", conn);
             using var reader = cmd.ExecuteReader();
             while (reader.Read()) list.Add(MapDeal(reader));
             return list;
@@ -29,7 +29,7 @@ namespace MAItems.Database
         {
             var list = new List<Deal>();
             using var conn = _context.GetConnection();
-            string sql = @"SELECT * FROM Deals WHERE Title LIKE @kw OR BusinessContent LIKE @kw OR Area LIKE @kw OR BrokerCompany LIKE @kw OR Status LIKE @kw ORDER BY Id;";
+            string sql = @"SELECT * FROM Deals WHERE Title LIKE @kw OR BusinessContent LIKE @kw OR Area LIKE @kw OR BrokerCompany LIKE @kw OR Status LIKE @kw ORDER BY LastUpdatedAt, Id;";
             using var cmd = new SqliteCommand(sql, conn);
             cmd.Parameters.AddWithValue("@kw", $"%{keyword}%");
             using var reader = cmd.ExecuteReader();
@@ -45,7 +45,7 @@ namespace MAItems.Database
             if (!string.IsNullOrEmpty(fromDate)) sb.Append(" AND InputDate >= @FromDate");
             if (!string.IsNullOrEmpty(toDate)) sb.Append(" AND InputDate <= @ToDate");
             if (!string.IsNullOrEmpty(keyword)) sb.Append(" AND (Title LIKE @kw OR BusinessContent LIKE @kw OR Area LIKE @kw OR BrokerCompany LIKE @kw OR Status LIKE @kw)");
-            sb.Append(" ORDER BY Id;");
+            sb.Append(" ORDER BY LastUpdatedAt, Id;");
 
             using var cmd = new SqliteCommand(sb.ToString(), conn);
             if (!string.IsNullOrEmpty(fromDate)) cmd.Parameters.AddWithValue("@FromDate", fromDate);
@@ -166,7 +166,7 @@ namespace MAItems.Database
         {
             var list = new List<DealNumeric>();
             using var conn = _context.GetConnection();
-            using var cmd = new SqliteCommand("SELECT * FROM DealsNumeric ORDER BY Id;", conn);
+            using var cmd = new SqliteCommand("SELECT * FROM DealsNumeric ORDER BY LastUpdatedAt, Id;", conn);
             using var reader = cmd.ExecuteReader();
             while (reader.Read()) list.Add(MapDealNumeric(reader));
             return list;
@@ -176,7 +176,7 @@ namespace MAItems.Database
         {
             var list = new List<DealNumeric>();
             using var conn = _context.GetConnection();
-            string sql = @"SELECT * FROM DealsNumeric WHERE Title LIKE @kw OR BusinessContent LIKE @kw OR Area LIKE @kw OR BrokerCompany LIKE @kw OR Status LIKE @kw ORDER BY Id;";
+            string sql = @"SELECT * FROM DealsNumeric WHERE Title LIKE @kw OR BusinessContent LIKE @kw OR Area LIKE @kw OR BrokerCompany LIKE @kw OR Status LIKE @kw ORDER BY LastUpdatedAt, Id;";
             using var cmd = new SqliteCommand(sql, conn);
             cmd.Parameters.AddWithValue("@kw", $"%{keyword}%");
             using var reader = cmd.ExecuteReader();

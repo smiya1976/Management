@@ -69,6 +69,18 @@ namespace MAItems.Database
             string sqlValuation = @"CREATE TABLE IF NOT EXISTS ValuationData ( Id INTEGER PRIMARY KEY AUTOINCREMENT, DealId INTEGER NOT NULL UNIQUE, NetAssetValue REAL, NetAssetNote TEXT, EBITDABase REAL, EBITDABaseYear TEXT, EBITDAMultiple REAL, EBITDANetCashDebt REAL, EBITDANote TEXT, DCFDiscountRate REAL, DCFTerminalGrowth REAL, DCFEV REAL, DCFNetCashDebt REAL, DCFNote TEXT, NOI REAL, CapRate REAL, DirectNetCashDebt REAL, DirectNote TEXT, EBITDAEquityValue REAL, DCFEquityValue REAL, DirectEquityValue REAL, ValuationNote TEXT );";
             using (var cmd = new SqliteCommand(sqlValuation, conn)) cmd.ExecuteNonQuery();
 
+            // ── 追加: 新しい ValuationData 列のマイグレーション ──
+            string[] newValCols = { "CashAndDeposits", "MarketableSecurities", "InsuranceReserves", "OtherAssets", "WorkingCapitalMonths", "ShortTermDebt", "LongTermDebt", "LeaseObligations", "OtherLiabilities" };
+            foreach (var col in newValCols) SafeAlterTable(conn, "ValuationData", col, "REAL");
+
+            // ── 新規テーブル1: 純資産法の修正項目 ──
+            string sqlNetAssetAdj = @"CREATE TABLE IF NOT EXISTS NetAssetAdjustments ( Id INTEGER PRIMARY KEY AUTOINCREMENT, DealId INTEGER NOT NULL, AdjustType INTEGER NOT NULL, ItemName TEXT, Amount REAL, Remarks TEXT );";
+            using (var cmd = new SqliteCommand(sqlNetAssetAdj, conn)) cmd.ExecuteNonQuery();
+
+            // ── 新規テーブル2: DCF法の事業計画 ──
+            string sqlDcf = @"CREATE TABLE IF NOT EXISTS DcfProjections ( Id INTEGER PRIMARY KEY AUTOINCREMENT, DealId INTEGER NOT NULL, YearIndex INTEGER NOT NULL, Revenue REAL, OpProfit REAL, TaxRate REAL, DiscountRate REAL, TerminalGrowth REAL, UNIQUE(DealId, YearIndex) );";
+            using (var cmd = new SqliteCommand(sqlDcf, conn)) cmd.ExecuteNonQuery();
+
             string sqlAttachments = @"CREATE TABLE IF NOT EXISTS Attachments ( Id INTEGER PRIMARY KEY AUTOINCREMENT, DealId INTEGER NOT NULL, FileName TEXT NOT NULL, FilePath TEXT NOT NULL, Description TEXT, UploadedAt TEXT );";
             using (var cmd = new SqliteCommand(sqlAttachments, conn)) cmd.ExecuteNonQuery();
         }
@@ -80,7 +92,7 @@ namespace MAItems.Database
                 using var cmd = new SqliteCommand($"ALTER TABLE {table} ADD COLUMN {column} {definition};", conn);
                 cmd.ExecuteNonQuery();
             }
-            catch { }
+            catch { } // 既に列が存在する場合はエラーを無視する
         }
     }
 }
