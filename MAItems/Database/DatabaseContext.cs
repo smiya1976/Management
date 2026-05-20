@@ -7,6 +7,7 @@ namespace MAItems.Database
     public class DatabaseContext
     {
         public string ConnectionString { get; }
+        public static string DbFilePath => Path.Combine(Application.StartupPath, "app_data.db");
 
         public DatabaseContext(string dbFileName = "app_data.db")
         {

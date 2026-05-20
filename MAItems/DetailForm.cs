@@ -33,6 +33,14 @@ namespace MAItems
         public DetailForm(Deal deal, DatabaseContext context)
         {
             InitializeComponent();
+            BuildTab1();
+            BuildTab2();
+            BuildTab3(); 
+            BuildTab4();
+            BuildTab5();
+
+
+
             _deal = deal;
 
             // それぞれの専門リポジトリを生成
@@ -406,69 +414,88 @@ namespace MAItems
         /// <summary>
         /// 財務ハイライト用の DataGridView の列・行を構築します。
         /// </summary>
+// ★追加: 表の構築中であることを判定するためのフラグ
+        private bool _isBuildingFinancialGrid = false;
+
         private void BuildFinancialGrid()
         {
-            dgvFinancial.AllowUserToAddRows = false;
-            dgvFinancial.ReadOnly = false;
-            dgvFinancial.RowHeadersVisible = true;
-            dgvFinancial.ColumnHeadersVisible = true;
-            dgvFinancial.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
-            dgvFinancial.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.None;
-            dgvFinancial.ScrollBars = ScrollBars.Both;
-            dgvFinancial.Columns.Clear();
-
-            // 列の定義
-            dgvFinancial.Columns.Add(new DataGridViewTextBoxColumn { Name = "Item", HeaderText = "項目（千円）", Width = 160, ReadOnly = true, Frozen = true });
-
-            string[] pt = { "actual", "actual", "actual", "forecast", "forecast", "forecast" };
-            string[] pl = { "実績1期", "実績2期", "実績3期", "予測1期", "予測2期", "予測3期" };
-
-            for (int i = 0; i < 6; i++)
+            _isBuildingFinancialGrid = true; // 構築スタート（計算イベントをブロック）
+            try
             {
-                dgvFinancial.Columns.Add(new DataGridViewTextBoxColumn
+                dgvFinancial.AllowUserToAddRows = false;
+                dgvFinancial.ReadOnly = false;
+                dgvFinancial.RowHeadersVisible = true;
+                dgvFinancial.ColumnHeadersVisible = true;
+                dgvFinancial.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
+                dgvFinancial.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.None;
+                dgvFinancial.ScrollBars = ScrollBars.Both;
+                dgvFinancial.Columns.Clear();
+
+                // 列の定義
+                dgvFinancial.Columns.Add(new DataGridViewTextBoxColumn { Name = "Item", HeaderText = "項目（千円）", Width = 160, ReadOnly = true, Frozen = true });
+
+                string[] pt = { "actual", "actual", "actual", "forecast", "forecast", "forecast" };
+                string[] pl = { "実績1期", "実績2期", "実績3期", "予測1期", "予測2期", "予測3期" };
+
+                for (int i = 0; i < 6; i++)
                 {
-                    Name = $"col_{pt[i]}_{i % 3 + 1}",
-                    HeaderText = pl[i],
-                    Width = 110,
-                    DefaultCellStyle = { Alignment = DataGridViewContentAlignment.MiddleRight }
-                });
-            }
-
-            // 行の定義
-            var rows = new (string label, string field, bool isSection)[] {
-                ("── PL ──────", "", true),
-                ("売上高", "Revenue", false), ("原価率(%)", "CostRate", false), ("粗利益", "GrossProfit", false), ("粗利率(%)", "GrossProfitRate", false),
-                ("販管費", "SGA", false), ("営業利益", "OperatingProfit", false), ("営業利益率(%)", "OperatingProfitRate", false),
-                ("経常利益", "OrdinaryProfit", false), ("当期純利益", "NetIncome", false), ("EBITDA", "EBITDA", false),
-                ("減価償却費", "Depreciation", false), ("設備投資額", "CapEx", false),
-
-                ("── BS（資産） ──", "", true),
-                ("流動資産", "CurrentAssets", false), ("　現金預金", "CashEquivalents", false), ("　売掛金", "AccountsReceivable", false),
-                ("　棚卸資産", "Inventory", false), ("　その他流動", "OtherCurrentAssets", false), ("固定資産", "FixedAssets", false), ("総資産", "TotalAssets", false),
-
-                ("── BS（負債） ──", "", true),
-                ("流動負債", "CurrentLiabilities", false), ("　買掛金", "AccountsPayable", false), ("　短期借入金", "ShortTermDebt", false),
-                ("　その他流動", "OtherCurrentLiabilities", false), ("固定負債", "FixedLiabilities", false), ("　長期借入金", "LongTermDebt", false),
-                ("　その他固定", "OtherFixedLiabilities", false), ("負債合計", "TotalLiabilities", false), ("純資産合計", "NetAssets", false),
-                ("　利益剰余金", "RetainedEarnings", false)
-            };
-
-            dgvFinancial.Rows.Clear();
-            foreach (var (label, field, isSection) in rows)
-            {
-                int idx = dgvFinancial.Rows.Add();
-                var row = dgvFinancial.Rows[idx];
-                row.Cells["Item"].Value = label;
-                row.Tag = field;
-
-                // セクション区切り行のデザイン設定
-                if (isSection)
-                {
-                    row.DefaultCellStyle.BackColor = Color.LightSlateGray;
-                    row.DefaultCellStyle.ForeColor = Color.White;
-                    row.DefaultCellStyle.Font = new Font(dgvFinancial.Font, FontStyle.Bold);
-                    row.ReadOnly = true;
+                    dgvFinancial.Columns.Add(new DataGridViewTextBoxColumn
+                    {
+                        Name = $"col_{pt[i]}_{i % 3 + 1}",
+                        HeaderText = pl[i],
+                        Width = 110,
+                        // ★修正1: 明示的に new して安全にスタイルを設定
+                        DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleRight }
+                    });
                 }
+
+                // 行の定義
+                var rows = new (string label, string field, bool isSection)[] {
+                    ("── PL ──────", "", true),
+                    ("売上高", "Revenue", false), ("原価率(%)", "CostRate", false), ("粗利益", "GrossProfit", false), ("粗利率(%)", "GrossProfitRate", false),
+                    ("販管費", "SGA", false), ("営業利益", "OperatingProfit", false), ("営業利益率(%)", "OperatingProfitRate", false),
+                    ("経常利益", "OrdinaryProfit", false), ("当期純利益", "NetIncome", false), ("EBITDA", "EBITDA", false),
+                    ("減価償却費", "Depreciation", false), ("設備投資額", "CapEx", false),
+
+                    ("── BS（資産） ──", "", true),
+                    ("流動資産", "CurrentAssets", false), ("　現金預金", "CashEquivalents", false), ("　売掛金", "AccountsReceivable", false),
+                    ("　棚卸資産", "Inventory", false), ("　その他流動", "OtherCurrentAssets", false), ("固定資産", "FixedAssets", false), ("総資産", "TotalAssets", false),
+
+                    ("── BS（負債） ──", "", true),
+                    ("流動負債", "CurrentLiabilities", false), ("　買掛金", "AccountsPayable", false), ("　短期借入金", "ShortTermDebt", false),
+                    ("　その他流動", "OtherCurrentLiabilities", false), ("固定負債", "FixedLiabilities", false), ("　長期借入金", "LongTermDebt", false),
+                    ("　その他固定", "OtherFixedLiabilities", false), ("負債合計", "TotalLiabilities", false), ("純資産合計", "NetAssets", false),
+                    ("　利益剰余金", "RetainedEarnings", false)
+                };
+
+                dgvFinancial.Rows.Clear();
+
+                // ★修正2: dgvFinancial.Font が null になった場合でも落ちないようにする安全対策
+                var safeFont = dgvFinancial.Font ?? this.Font ?? SystemFonts.DefaultFont;
+                var boldFont = new Font(safeFont, FontStyle.Bold);
+
+                foreach (var (label, field, isSection) in rows)
+                {
+                    int idx = dgvFinancial.Rows.Add();
+                    var row = dgvFinancial.Rows[idx];
+
+                    // ★修正3: 文字列検索("Item")ではなく、確実にインデックス[0]を指定してエラーを回避
+                    row.Cells[0].Value = label;
+                    row.Tag = field;
+
+                    // セクション区切り行のデザイン設定
+                    if (isSection)
+                    {
+                        row.DefaultCellStyle.BackColor = Color.LightSlateGray;
+                        row.DefaultCellStyle.ForeColor = Color.White;
+                        row.DefaultCellStyle.Font = boldFont;
+                        row.ReadOnly = true;
+                    }
+                }
+            }
+            finally
+            {
+                _isBuildingFinancialGrid = false; // 構築終了
             }
         }
 
