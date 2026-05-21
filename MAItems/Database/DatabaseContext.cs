@@ -71,7 +71,11 @@ namespace MAItems.Database
             using (var cmd = new SqliteCommand(sqlValuation, conn)) cmd.ExecuteNonQuery();
 
             // ── 追加: 新しい ValuationData 列のマイグレーション ──
-            string[] newValCols = { "CashAndDeposits", "MarketableSecurities", "InsuranceReserves", "OtherAssets", "WorkingCapitalMonths", "ShortTermDebt", "LongTermDebt", "LeaseObligations", "OtherLiabilities" };
+            string[] newValCols = {
+                "CashAndDeposits", "MarketableSecurities", "InsuranceReserves", "OtherAssets", "WorkingCapitalMonths",
+                "ShortTermDebt", "LongTermDebt", "LeaseObligations", "OtherLiabilities",
+                "OpProfit_NA", "TaxRate_NA", "GoodwillYears", "OpProfit_Direct", "TaxRate_Direct" // ←追加
+            };
             foreach (var col in newValCols) SafeAlterTable(conn, "ValuationData", col, "REAL");
 
             // ── 新規テーブル1: 純資産法の修正項目 ──

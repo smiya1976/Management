@@ -5,7 +5,6 @@
         public long Id { get; set; }
         public long DealId { get; set; }
 
-        // ── 既存のプロパティ ──
         public double? NetAssetValue { get; set; }
         public string NetAssetNote { get; set; } = string.Empty;
 
@@ -31,7 +30,6 @@
         public double? DirectEquityValue { get; set; }
         public string ValuationNote { get; set; } = string.Empty;
 
-        // ── ★今回追加したプロパティ（現預金・有利子負債など） ──
         public double? CashAndDeposits { get; set; }      // 現金・預金
         public double? MarketableSecurities { get; set; } // 商品有価証券
         public double? InsuranceReserves { get; set; }    // 保険積立金
@@ -42,8 +40,14 @@
         public double? LongTermDebt { get; set; }         // 長期借入金
         public double? LeaseObligations { get; set; }     // リース負債
         public double? OtherLiabilities { get; set; }     // その他有利子負債
+        public double? OpProfit_NA { get; set; }
+        public double? TaxRate_NA { get; set; }
+        public double? GoodwillYears { get; set; }
+        public double? OpProfit_Direct { get; set; }
+        public double? TaxRate_Direct { get; set; }
+
     }
-    // ── ① 新規追加：純資産法の修正項目（1対多） ──
+    // ── 純資産法の修正項目（1対多） ──
     public class NetAssetAdjustment
     {
         public long Id { get; set; }
@@ -54,7 +58,7 @@
         public string Remarks { get; set; } = string.Empty;
     }
 
-    // ── ② 新規追加：DCF法の将来計画（1対多） ──
+    // ── DCF法の将来計画（1対多） ──
     public class DcfProjection
     {
         public long Id { get; set; }
