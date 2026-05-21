@@ -350,7 +350,7 @@ namespace MAItems
                 dgvFinancial.Columns.Clear();
 
                 // 列の定義
-                dgvFinancial.Columns.Add(new DataGridViewTextBoxColumn { Name = "Item", HeaderText = "項目（千円）", Width = 160, ReadOnly = true, Frozen = true });
+                dgvFinancial.Columns.Add(new DataGridViewTextBoxColumn { Name = "Item", HeaderText = "項目（百万円）", Width = 160, ReadOnly = true, Frozen = true });
 
                 string[] pt = { "actual", "actual", "actual", "forecast", "forecast", "forecast" };
                 string[] pl = { "実績1期", "実績2期", "実績3期", "予測1期", "予測2期", "予測3期" };
@@ -840,7 +840,8 @@ namespace MAItems
                     "2. 2行目以降に、各項目の数値を出力してください。\n" +
                     "3. 表内の階層（字下げ）は無視し、項目名は左詰めで出力してください。\n" +
                     "4. 数値の桁区切りカンマ（,）は除外し、マイナス表記は半角の「-」に統一してください。\n" +
-                    "5. 簡単にコピーできるよう、出力は必ず1つのコードブロック（```text 〜 ```）にまとめてください。";
+                    "5. 【重要】金額の単位は必ず「百万円単位」で出力してください（元画像が「円」や「千円」単位の場合は、百万円単位に換算して出力すること。比率(%)の項目はそのままの数値で構いません）。\n" +
+                    "6. 簡単にコピーできるよう、出力は必ず1つのコードブロック（```text 〜 ```）にまとめてください。";
 
                 Clipboard.SetText(prompt);
                 MessageBox.Show(

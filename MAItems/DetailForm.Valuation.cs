@@ -205,26 +205,26 @@ namespace MAItems
             double workingCapital = (latestRev / 12.0) * wcMonths;
             double nonOpAssets = Math.Max(0, cash - workingCapital); // 非事業資産
 
-            lblWorkingCapital.Text = workingCapital.ToString("#,0") + " 千円";
-            lblNonOpAssets.Text = nonOpAssets.ToString("#,0") + " 千円";
-            lblTotalDebt.Text = debt.ToString("#,0") + " 千円";
+            lblWorkingCapital.Text = workingCapital.ToString("#,0") + " 百万円";
+            lblNonOpAssets.Text = nonOpAssets.ToString("#,0") + " 百万円";
+            lblTotalDebt.Text = debt.ToString("#,0") + " 百万円";
 
             // 2. 純資産法の計算
             double bookNet = ParseD(txtBookNetAsset.Text);
             double assetAdj = GetGridTotal(dgvAssetAdj, "Amount");
             double liabAdj = GetGridTotal(dgvLiabAdj, "Amount");
             double marketNet = bookNet + assetAdj - liabAdj;
-            lblMarketNetAsset.Text = marketNet.ToString("#,0") + " 千円";
+            lblMarketNetAsset.Text = marketNet.ToString("#,0") + " 百万円";
 
             double noplat_NA = ParseD(txtOpProfit_NA.Text) * (1 - (ParseD(txtTaxRate_NA.Text) / 100.0));
             double goodwill = noplat_NA * ParseD(txtGoodwillYears.Text);
-            lblGoodwill.Text = goodwill.ToString("#,0") + " 千円";
-            lblTotal_NA.Text = (marketNet + goodwill).ToString("#,0") + " 千円";
+            lblGoodwill.Text = goodwill.ToString("#,0") + " 百万円";
+            lblTotal_NA.Text = (marketNet + goodwill).ToString("#,0") + " 百万円";
 
             // 3. EBITDA法の計算 (※画像通り、非事業資産ではなく「現金」を足す)
             double ev_EBITDA = ParseD(txtEBITDA_Calc.Text) * ParseD(txtEBITDAMultiple.Text);
-            lblEV_EBITDA.Text = ev_EBITDA.ToString("#,0") + " 千円";
-            lblEquity_EBITDA.Text = (ev_EBITDA + cash - debt).ToString("#,0") + " 千円";
+            lblEV_EBITDA.Text = ev_EBITDA.ToString("#,0") + " 百万円";
+            lblEquity_EBITDA.Text = (ev_EBITDA + cash - debt).ToString("#,0") + " 百万円";
 
             // 4. DCF法の計算
             double ev_DCF = 0;
@@ -254,15 +254,15 @@ namespace MAItems
                 r.Cells["PV"].Value = pv;
                 ev_DCF += pv;
             }
-            lblEV_DCF.Text = ev_DCF.ToString("#,0") + " 千円";
-            lblEquity_DCF.Text = (ev_DCF + nonOpAssets - debt).ToString("#,0") + " 千円";
+            lblEV_DCF.Text = ev_DCF.ToString("#,0") + " 百万円";
+            lblEquity_DCF.Text = (ev_DCF + nonOpAssets - debt).ToString("#,0") + " 百万円";
 
             // 5. 直接還元法の計算
             double noplat_Direct = ParseD(txtOpProfit_Direct.Text) * (1 - (ParseD(txtTaxRate_Direct.Text) / 100.0));
             double capRate = ParseD(txtCapRate.Text) / 100.0;
             double ev_Direct = capRate > 0 ? noplat_Direct / capRate : 0;
-            lblEV_Direct.Text = ev_Direct.ToString("#,0") + " 千円";
-            lblEquity_Direct.Text = (ev_Direct + nonOpAssets - debt).ToString("#,0") + " 千円";
+            lblEV_Direct.Text = ev_Direct.ToString("#,0") + " 百万円";
+            lblEquity_Direct.Text = (ev_Direct + nonOpAssets - debt).ToString("#,0") + " 百万円";
         }
 
 
@@ -307,7 +307,7 @@ namespace MAItems
             parent.Controls.Add(new Label { Text = title, Location = new Point(15, y) });
             dgv.Location = new Point(15, y + 20); dgv.Size = new Size(500, 120);
             dgv.AllowUserToAddRows = true; dgv.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-            dgv.Columns.Add("ItemName", "項目"); dgv.Columns.Add("Amount", "金額(千円)"); dgv.Columns.Add("Remarks", "備考");
+            dgv.Columns.Add("ItemName", "項目"); dgv.Columns.Add("Amount", "金額(百万円)"); dgv.Columns.Add("Remarks", "備考");
             parent.Controls.Add(dgv); y += 150;
         }
         private void SetupDcfGrid(Control parent, ref int y)

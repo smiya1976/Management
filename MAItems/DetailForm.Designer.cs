@@ -313,7 +313,7 @@ namespace MAItems
         private void BuildTab3()
         {
             this.dgvFinancial = new DataGridView();
-            var lblNote = new Label { Text = "単位：千円　　期ラベルはヘッダーをダブルクリックして編集できます", Location = new Point(4, 4), Size = new Size(400, 20), Font = new Font("Yu Gothic UI", 8.5F), ForeColor = Color.DimGray };
+            var lblNote = new Label { Text = "単位：百万円　　期ラベルはヘッダーをダブルクリックして編集できます", Location = new Point(4, 4), Size = new Size(400, 20), Font = new Font("Yu Gothic UI", 8.5F), ForeColor = Color.DimGray };
 
             this.btnPasteFinancial = new Button
             {
