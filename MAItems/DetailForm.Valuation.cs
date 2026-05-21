@@ -19,6 +19,9 @@ namespace MAItems
         private TextBox txtShortDebt = new TextBox(), txtLongDebt = new TextBox(), txtLease = new TextBox(), txtOtherDebt = new TextBox();
         private Label lblTotalDebt = new Label(), lblWorkingCapital = new Label(), lblNonOpAssets = new Label();
 
+        // ★追加: 財務データから再取得するためのボタン
+        private Button btnReflectFinancial = new Button();
+
         // 各手法の入力・結果
         private TextBox txtBookNetAsset = new TextBox(), txtOpProfit_NA = new TextBox(), txtTaxRate_NA = new TextBox(), txtGoodwillYears = new TextBox();
         private Label lblMarketNetAsset = new Label(), lblGoodwill = new Label(), lblTotal_NA = new Label();
@@ -37,6 +40,7 @@ namespace MAItems
         private void BuildValuationUI(Control container)
         {
             container.Controls.Clear();
+            tabValuation.TabPages.Clear();
             var split = new SplitContainer { Dock = DockStyle.Fill, FixedPanel = FixedPanel.Panel2 };
             this.Load += (s, ev) => {
                 // フォームのロードが完了し、実際のサイズが確定したタイミングで右側パネルを300pxに設定する
@@ -59,6 +63,21 @@ namespace MAItems
             split.Panel2.Controls.Add(pnlShared);
 
             int y = 10;
+
+            // ── ★【ここから追加】共通パネルの最上部に「再取得ボタン」を配置 ──
+            btnReflectFinancial = new Button
+            {
+                Text = "🔄 財務データから最新を取得",
+                Location = new Point(15, y),
+                Size = new Size(250, 30),
+                BackColor = Color.LightYellow,
+                Font = new Font("Yu Gothic UI", 9F, FontStyle.Regular)
+            };
+            btnReflectFinancial.Click += btnReflectFinancial_Click;
+            pnlShared.Controls.Add(btnReflectFinancial);
+            y += 40; // ボタンの高さと余白分、配置位置を下にずらす
+            // ── ★【ここまで追加】──
+
             AddHeader(pnlShared, "【共通: 加算項目】", ref y);
             txtCash = AddInput(pnlShared, "現金・預金等", ref y);
             txtWCMonths = AddInput(pnlShared, "運転資金(月商のNヶ月)", ref y);
@@ -109,6 +128,68 @@ namespace MAItems
 
             // 全入力欄にイベント紐付け
             AttachCalculateEvent(split);
+        }
+
+        // ══════════════════════════════════════════════════════
+        // ★追加: 財務データから再取得ボタンが押された時の処理
+        // ══════════════════════════════════════════════════════
+        private void btnReflectFinancial_Click(object? sender, EventArgs e)
+        {
+            var confirm = MessageBox.Show(
+                "財務データタブの最新の実績値で、現在のバリュエーション入力欄を上書きしますか？\n（※手入力で修正していた数値はリセットされます）",
+                "再取得の確認", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+            if (confirm == DialogResult.Yes)
+            {
+                ReflectFinancialData();
+            }
+        }
+
+        // ══════════════════════════════════════════════════════
+        // ★修正・最適化: 財務データから実績値を引っ張ってきて画面に反映
+        // ══════════════════════════════════════════════════════
+        private void ReflectFinancialData()
+        {
+            // すでにクラス内に読み込まれている _highlights リストを安全に使用します
+            if (_highlights == null || _highlights.Count == 0)
+            {
+                MessageBox.Show("財務データがまだ登録されていないか、読み込めていません。", "通知", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+ 
+            // ── 再取得ボタンを押した時も、DCFの表を最新の予測データで作り直す ──
+            InitializeDcfWithForecasts();
+
+            // 直近の実績期（PeriodType が \"actual\" の中で、順序 Order が一番大きいもの）を取得
+            var latestActual = _highlights
+                .Where(h => h.PeriodType == "actual")
+                .OrderByDescending(h => h.PeriodOrder)
+                .FirstOrDefault() ?? _highlights.OrderByDescending(h => h.PeriodOrder).FirstOrDefault();
+
+            if (latestActual != null)
+            {
+                // 1. 共通項目（右側パネル）への自動転記
+                if (latestActual.CashEquivalents.HasValue)
+                    txtCash.Text = latestActual.CashEquivalents.Value.ToString();
+
+                if (latestActual.ShortTermDebt.HasValue)
+                    txtShortDebt.Text = latestActual.ShortTermDebt.Value.ToString();
+
+                if (latestActual.LongTermDebt.HasValue)
+                    txtLongDebt.Text = latestActual.LongTermDebt.Value.ToString();
+
+                // 2. 各手法の初期値への自動転記
+                if (latestActual.EBITDA.HasValue)
+                    txtEBITDA_Calc.Text = latestActual.EBITDA.Value.ToString();
+
+                if (latestActual.NetAssets.HasValue)
+                    txtBookNetAsset.Text = latestActual.NetAssets.Value.ToString();
+
+                // 3. 値がセットされたら、即座にバリュエーションの総再計算処理を走らせる
+                CalculateValuation(null, EventArgs.Empty);
+
+                MessageBox.Show($"直近の実績データ（{latestActual.PeriodLabel}）を反映し、再計算しました！", "反映完了", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
         }
 
         // ── 計算ロジック本体 ──
@@ -184,41 +265,7 @@ namespace MAItems
             lblEquity_Direct.Text = (ev_Direct + nonOpAssets - debt).ToString("#,0") + " 千円";
         }
 
-        // ── 財務ハイライトからの自動データロード ──
-        private void LoadValuationData()
-        {
-            // DBから読込
-            _valuation = _financialRepo.GetValuationData(_deal.Id) ?? new ValuationData { DealId = _deal.Id };
 
-            // 共通入力のセット
-            txtCash.Text = _valuation.CashAndDeposits?.ToString() ?? "";
-            txtWCMonths.Text = _valuation.WorkingCapitalMonths?.ToString() ?? "1.5"; // デフォルト1.5ヶ月
-            txtShortDebt.Text = _valuation.ShortTermDebt?.ToString() ?? "";
-            txtLongDebt.Text = _valuation.LongTermDebt?.ToString() ?? "";
-            txtLease.Text = _valuation.LeaseObligations?.ToString() ?? "";
-            txtOtherDebt.Text = _valuation.OtherLiabilities?.ToString() ?? "";
-
-            // EBITDA・直接還元法への最新実績の自動連動
-            var latestActual = _highlights.Where(h => h.PeriodType == "actual").OrderByDescending(h => h.PeriodOrder).FirstOrDefault();
-            txtEBITDA.Text = _valuation.EBITDABase?.ToString() ?? latestActual?.EBITDA?.ToString() ?? "0";
-            txtEBITDAMultiple.Text = _valuation.EBITDAMultiple?.ToString() ?? "7"; // デフォルト7倍
-
-            txtOpProfit_Direct.Text = _valuation.NOI?.ToString() ?? latestActual?.OperatingProfit?.ToString() ?? "0";
-            txtTaxRate_Direct.Text = "30";
-            txtCapRate.Text = _valuation.CapRate?.ToString() ?? "5";
-
-            // 純資産法
-            txtBookNetAsset.Text = _valuation.NetAssetValue?.ToString() ?? latestActual?.NetAssets?.ToString() ?? "0";
-            txtOpProfit_NA.Text = latestActual?.OperatingProfit?.ToString() ?? "0";
-            txtTaxRate_NA.Text = "30";
-            txtGoodwillYears.Text = "3"; // デフォルト3年
-
-            // DBからグリッドへ（省略時、DCFは自動で1〜5期の予測を流し込みます）
-            // ※文字数制限のため、ここでのDB展開は省略し初回連動を優先させています。
-            InitializeDcfWithForecasts();
-
-            CalculateValuation(null, EventArgs.Empty);
-        }
 
         private void InitializeDcfWithForecasts()
         {
@@ -271,7 +318,6 @@ namespace MAItems
             string[] heads = { "期", "売上高", "営業利益", "税率(%)", "NOPLAT", "割引率(%)", "永久成長率", "現在価値(PV)" };
             for (int i = 0; i < cols.Length; i++) dgvDcf.Columns.Add(cols[i], heads[i]);
 
-            // ── 変更: ! を付けてコンパイラの警告を抑制 ──
             dgvDcf.Columns["Year"]!.ReadOnly = true;
             dgvDcf.Columns["NOPLAT"]!.ReadOnly = true;
             dgvDcf.Columns["PV"]!.ReadOnly = true;
@@ -292,5 +338,141 @@ namespace MAItems
                 if (c.HasChildren) AttachCalculateEvent(c);
             }
         }
+
+        // ══════════════════════════════════════════════════════
+        // 株式価値試算データの保存 (正規データベースカラム完全マッピング版)
+        // ══════════════════════════════════════════════════════
+        // ══════════════════════════════════════════════════════
+        // 株式価値試算データの保存 (UI連携の漏れをすべて解消版)
+        // ══════════════════════════════════════════════════════
+        private void SaveValuationData()
+        {
+            var v = new ValuationData
+            {
+                DealId = _deal.Id,
+
+                // 共通項目 (右側パネル)
+                CashAndDeposits = ParseNullableDouble(txtCash.Text),
+                WorkingCapitalMonths = ParseNullableDouble(txtWCMonths.Text),
+                ShortTermDebt = ParseNullableDouble(txtShortDebt.Text),
+                LongTermDebt = ParseNullableDouble(txtLongDebt.Text),
+                LeaseObligations = ParseNullableDouble(txtLease.Text),
+                OtherLiabilities = ParseNullableDouble(txtOtherDebt.Text),
+
+                // ① 純資産法 (★不足していた項目を追加)
+                NetAssetValue = ParseNullableDouble(txtBookNetAsset.Text),
+                OpProfit_NA = ParseNullableDouble(txtOpProfit_NA.Text),
+                TaxRate_NA = ParseNullableDouble(txtTaxRate_NA.Text),
+                GoodwillYears = ParseNullableDouble(txtGoodwillYears.Text),
+
+                // ② EBITDA法
+                EBITDABase = ParseNullableDouble(txtEBITDA_Calc.Text),
+                EBITDAMultiple = ParseNullableDouble(txtEBITDAMultiple.Text),
+
+                // ④ 直接還元法 (★不足していた項目を追加)
+                OpProfit_Direct = ParseNullableDouble(txtOpProfit_Direct.Text),
+                TaxRate_Direct = ParseNullableDouble(txtTaxRate_Direct.Text),
+                CapRate = ParseNullableDouble(txtCapRate.Text)
+            };
+
+            var finRepo = new FinancialRepository(_context);
+            finRepo.UpsertValuationData(v);
+
+            // ① 純資産法の修正項目グリッドの保存
+            finRepo.DeleteNetAssetAdjustments(_deal.Id);
+            foreach (DataGridViewRow r in dgvAssetAdj.Rows)
+            {
+                if (r.IsNewRow) continue;
+                finRepo.AddNetAssetAdjustment(new NetAssetAdjustment { DealId = _deal.Id, AdjustType = 1, ItemName = r.Cells["ItemName"].Value?.ToString() ?? "", Amount = ParseD(r.Cells["Amount"].Value), Remarks = r.Cells["Remarks"].Value?.ToString() ?? "" });
+            }
+            foreach (DataGridViewRow r in dgvLiabAdj.Rows)
+            {
+                if (r.IsNewRow) continue;
+                finRepo.AddNetAssetAdjustment(new NetAssetAdjustment { DealId = _deal.Id, AdjustType = 2, ItemName = r.Cells["ItemName"].Value?.ToString() ?? "", Amount = ParseD(r.Cells["Amount"].Value), Remarks = r.Cells["Remarks"].Value?.ToString() ?? "" });
+            }
+
+            // ③ DCF法の事業計画グリッドの保存
+            finRepo.DeleteDcfProjections(_deal.Id);
+            foreach (DataGridViewRow r in dgvDcf.Rows)
+            {
+                if (r.IsNewRow) continue;
+                finRepo.AddDcfProjection(new DcfProjection { DealId = _deal.Id, YearIndex = r.Index, Revenue = ParseNullableDouble(r.Cells["Revenue"].Value?.ToString()), OpProfit = ParseNullableDouble(r.Cells["OpProfit"].Value?.ToString()), TaxRate = ParseNullableDouble(r.Cells["TaxRate"].Value?.ToString()), DiscountRate = ParseNullableDouble(r.Cells["DiscountRate"].Value?.ToString()), TerminalGrowth = ParseNullableDouble(r.Cells["TerminalGrowth"].Value?.ToString()) });
+            }
+        }
+
+        // ══════════════════════════════════════════════════════
+        // 株式価値試算データの読み込み (UI連携の漏れをすべて解消版)
+        // ══════════════════════════════════════════════════════
+        private void LoadValuationData()
+        {
+            var finRepo = new FinancialRepository(_context);
+            var v = finRepo.GetValuationData(_deal.Id);
+
+            InitializeDcfWithForecasts();
+
+            if (v != null)
+            {
+                // 右側共通パネルの復元
+                txtCash.Text = v.CashAndDeposits?.ToString();
+                txtWCMonths.Text = v.WorkingCapitalMonths?.ToString();
+                txtShortDebt.Text = v.ShortTermDebt?.ToString();
+                txtLongDebt.Text = v.LongTermDebt?.ToString();
+                txtLease.Text = v.LeaseObligations?.ToString();
+                txtOtherDebt.Text = v.OtherLiabilities?.ToString();
+
+                // ① 純資産法の復元 (★不足していた項目を追加)
+                txtBookNetAsset.Text = v.NetAssetValue?.ToString();
+                txtOpProfit_NA.Text = v.OpProfit_NA?.ToString();
+                txtTaxRate_NA.Text = v.TaxRate_NA?.ToString();
+                txtGoodwillYears.Text = v.GoodwillYears?.ToString();
+
+                // ② EBITDA法の復元
+                txtEBITDA_Calc.Text = v.EBITDABase?.ToString();
+                txtEBITDAMultiple.Text = v.EBITDAMultiple?.ToString();
+
+                // ④ 直接還元法の復元 (★不足していた項目を追加)
+                txtCapRate.Text = v.CapRate?.ToString();
+                txtOpProfit_Direct.Text = v.OpProfit_Direct?.ToString();
+                txtTaxRate_Direct.Text = v.TaxRate_Direct?.ToString();
+
+                // ① グリッドの復元
+                var adjList = finRepo.GetNetAssetAdjustments(_deal.Id);
+                dgvAssetAdj.Rows.Clear();
+                dgvLiabAdj.Rows.Clear();
+                foreach (var adj in adjList)
+                {
+                    if (adj.AdjustType == 1) dgvAssetAdj.Rows.Add(adj.ItemName, adj.Amount, adj.Remarks);
+                    else if (adj.AdjustType == 2) dgvLiabAdj.Rows.Add(adj.ItemName, adj.Amount, adj.Remarks);
+                }
+
+                // ③ グリッドの復元
+                var dcfList = finRepo.GetDcfProjections(_deal.Id);
+                foreach (var proj in dcfList)
+                {
+                    if (proj.YearIndex >= 0 && proj.YearIndex < dgvDcf.Rows.Count)
+                    {
+                        var row = dgvDcf.Rows[proj.YearIndex];
+                        if (proj.Revenue.HasValue) row.Cells["Revenue"].Value = proj.Revenue.Value;
+                        if (proj.OpProfit.HasValue) row.Cells["OpProfit"].Value = proj.OpProfit.Value;
+                        if (proj.TaxRate.HasValue) row.Cells["TaxRate"].Value = proj.TaxRate.Value;
+                        if (proj.DiscountRate.HasValue) row.Cells["DiscountRate"].Value = proj.DiscountRate.Value;
+                        if (proj.TerminalGrowth.HasValue) row.Cells["TerminalGrowth"].Value = proj.TerminalGrowth.Value;
+                    }
+                }
+
+                CalculateValuation(null, EventArgs.Empty);
+                return;
+            }
+
+            ReflectFinancialData();
+        }
+        // 文字列から安全に Nullable double へ変換するヘルパー
+        private double? ParseNullableDouble(string? text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return null;
+            if (double.TryParse(text.Replace(",", ""), out double r)) return r;
+            return null;
+        }
+
     }
 }

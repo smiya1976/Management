@@ -25,10 +25,6 @@ namespace MAItems
 
         private DataGridView dgvFinancial;
 
-        private Panel pnlValuation;
-        private TextBox txtValNetAsset, txtValNetNote, txtValEBITDA, txtValEBITDAYear, txtValMultiple, txtValEBITDANet, txtValEBITDANote, txtValDCFRate, txtValDCFGrowth, txtValDCFEV, txtValDCFNet, txtValDCFNote, txtValNOI, txtValCapRate, txtValDirectNet, txtValDirectNote, txtValNote;
-        private Label lblValNetAssetResult, lblValEBITDAResult, lblValDCFResult, lblValDirectResult, lblValSummary;
-
         private TextBox txtAttachmentsSummary;
         private DataGridView dgvAttachments;
         private Button btnAddFile, btnOpenFile, btnDeleteFile;
@@ -36,8 +32,8 @@ namespace MAItems
 
         // フッターボタン群
         private Button btnPasteFromMail;
-        private Button btnPrev; // 追加: 前へボタン
-        private Button btnNext; // 追加: 次へボタン
+        private Button btnPrev;
+        private Button btnNext;
         private Button btnSave;
         private Button btnClose;
         private Label lblStatus;
@@ -319,70 +315,27 @@ namespace MAItems
             this.dgvFinancial = new DataGridView();
             var lblNote = new Label { Text = "単位：千円　　期ラベルはヘッダーをダブルクリックして編集できます", Location = new Point(4, 4), Size = new Size(400, 20), Font = new Font("Yu Gothic UI", 8.5F), ForeColor = Color.DimGray };
 
-            // 👇 ここから追加：貼付ボタンの生成
             this.btnPasteFinancial = new Button
             {
                 Text = "📋 表から自動入力",
-                Location = new Point(420, 2), // ラベルの右側に配置
+                Location = new Point(420, 2),
                 Size = new Size(140, 24),
                 BackColor = Color.LightYellow
             };
             this.btnPasteFinancial.Click += new EventHandler(this.btnPasteFinancial_Click);
-            // 👆 ここまで追加
 
             this.dgvFinancial.Location = new Point(4, 28);
             this.dgvFinancial.Size = new Size(820, 545);
             this.dgvFinancial.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
 
             this.tabPage3.Controls.Add(lblNote);
-            this.tabPage3.Controls.Add(this.btnPasteFinancial); // 👈 タブにボタンを追加
+            this.tabPage3.Controls.Add(this.btnPasteFinancial);
             this.tabPage3.Controls.Add(this.dgvFinancial);
         }
 
         private void BuildTab4()
         {
-            var scrollPanel = new Panel { Dock = DockStyle.Fill, AutoScroll = true };
-            this.pnlValuation = new Panel { Size = new Size(820, 900) };
-
-            int y = 8; int lw = 140, tw = 200, rw = 300;
-
-            y = AddValuationSection(this.pnlValuation, "① 純資産法", y);
-            this.txtValNetAsset = AddValRow(pnlValuation, "修正純資産（千円）", ref y, lw, tw);
-            this.txtValNetNote = AddValRow(pnlValuation, "備考", ref y, lw, tw, multiLine: true, height: 40);
-            this.lblValNetAssetResult = AddResultLabel(pnlValuation, ref y, rw);
-
-            y += 8; y = AddValuationSection(this.pnlValuation, "② EBITDAマルチプル", y);
-            this.txtValEBITDA = AddValRow(pnlValuation, "EBITDA（千円）", ref y, lw, tw);
-            this.txtValEBITDAYear = AddValRow(pnlValuation, "基準年度", ref y, lw, tw);
-            this.txtValMultiple = AddValRow(pnlValuation, "マルチプル（倍）", ref y, lw, tw);
-            this.txtValEBITDANet = AddValRow(pnlValuation, "ネットキャッシュ（千円）", ref y, lw, tw);
-            this.txtValEBITDANote = AddValRow(pnlValuation, "備考", ref y, lw, tw, multiLine: true, height: 40);
-            this.lblValEBITDAResult = AddResultLabel(pnlValuation, ref y, rw);
-
-            y += 8; y = AddValuationSection(this.pnlValuation, "③ DCF法", y);
-            this.txtValDCFRate = AddValRow(pnlValuation, "割引率（%）", ref y, lw, tw);
-            this.txtValDCFGrowth = AddValRow(pnlValuation, "永続成長率（%）", ref y, lw, tw);
-            this.txtValDCFEV = AddValRow(pnlValuation, "EV（千円）", ref y, lw, tw);
-            this.txtValDCFNet = AddValRow(pnlValuation, "ネットキャッシュ（千円）", ref y, lw, tw);
-            this.txtValDCFNote = AddValRow(pnlValuation, "備考", ref y, lw, tw, multiLine: true, height: 40);
-            this.lblValDCFResult = AddResultLabel(pnlValuation, ref y, rw);
-
-            y += 8; y = AddValuationSection(this.pnlValuation, "④ 直接還元法", y);
-            this.txtValNOI = AddValRow(pnlValuation, "NOI（千円）", ref y, lw, tw);
-            this.txtValCapRate = AddValRow(pnlValuation, "キャップレート（%）", ref y, lw, tw);
-            this.txtValDirectNet = AddValRow(pnlValuation, "ネットキャッシュ（千円）", ref y, lw, tw);
-            this.txtValDirectNote = AddValRow(pnlValuation, "備考", ref y, lw, tw, multiLine: true, height: 40);
-            this.lblValDirectResult = AddResultLabel(pnlValuation, ref y, rw);
-
-            y += 16;
-            this.lblValSummary = new Label { Location = new Point(8, y), Size = new Size(790, 28), Font = new Font("Yu Gothic UI", 11F, FontStyle.Bold), ForeColor = Color.DarkBlue, Text = "試算結果" };
-            y += 36;
-            this.pnlValuation.Controls.Add(new Label { Text = "総合備考:", Location = new Point(8, y), Size = new Size(lw, 23), TextAlign = ContentAlignment.MiddleRight });
-            this.txtValNote = new TextBox { Location = new Point(lw + 12, y), Size = new Size(640, 60), Multiline = true, ScrollBars = ScrollBars.Vertical };
-            this.pnlValuation.Controls.Add(this.txtValNote);
-
-            scrollPanel.Controls.Add(this.pnlValuation);
-            this.tabPage4.Controls.Add(scrollPanel);
+            BuildValuationUI(this.tabPage4);
         }
 
         private void BuildTab5()
@@ -440,30 +393,6 @@ namespace MAItems
             mainLayout.Controls.Add(pnlButtons, 0, 4);
 
             this.tabPage5.Controls.Add(mainLayout);
-        }
-
-        private static int AddValuationSection(Panel panel, string title, int y)
-        {
-            var lbl = new Label { Text = title, Location = new Point(4, y), Size = new Size(800, 24), Font = new Font("Yu Gothic UI", 10F, FontStyle.Bold), BackColor = Color.SteelBlue, ForeColor = Color.White };
-            panel.Controls.Add(lbl);
-            return y + 28;
-        }
-
-        private static TextBox AddValRow(Panel panel, string label, ref int y, int lw, int tw, bool multiLine = false, int height = 26)
-        {
-            panel.Controls.Add(new Label { Text = label, Location = new Point(8, y + 2), Size = new Size(lw, height), TextAlign = ContentAlignment.MiddleRight });
-            var txt = new TextBox { Location = new Point(lw + 12, y), Size = new Size(tw, height), Multiline = multiLine, ScrollBars = multiLine ? ScrollBars.Vertical : ScrollBars.None };
-            panel.Controls.Add(txt);
-            y += height + 4;
-            return txt;
-        }
-
-        private static Label AddResultLabel(Panel panel, ref int y, int width)
-        {
-            var lbl = new Label { Location = new Point(8, y), Size = new Size(width, 24), ForeColor = Color.DarkGreen, Font = new Font("Yu Gothic UI", 9.5F, FontStyle.Bold) };
-            panel.Controls.Add(lbl);
-            y += 28;
-            return lbl;
         }
 
         private void SetTextField(string fieldName, TextBox txt)

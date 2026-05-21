@@ -16,6 +16,7 @@ namespace MAItems
         private readonly FinancialRepository _financialRepo;
         private readonly AttachmentRepository _attachmentRepo;
         private Deal _deal;
+        private DatabaseContext _context;
 
         // 各タブで管理する拡張データ
         private CompanyProfile _profile = new();
@@ -42,6 +43,7 @@ namespace MAItems
 
 
             _deal = deal;
+            _context = context;
 
             // それぞれの専門リポジトリを生成
             _dealRepo = new DealRepository(context);
@@ -61,8 +63,6 @@ namespace MAItems
             LoadTab1();
             LoadTab2();
             LoadTab3();
-            // 例: tabPageValuation という名前の空のタブページ（またはパネル）に、UIを流し込む
-            BuildValuationUI(tabPage4);
 
             // 保存されたデータの展開と、財務ハイライトからの自動計算を実行
             LoadValuationData();
@@ -178,8 +178,7 @@ namespace MAItems
                 }
 
                 // Tab4: 株式価値試算
-                //FormToValuation();
-                //_financialRepo.UpsertValuationData(_valuation);
+                SaveValuationData();
 
                 // 親フォームへ通知
                 SaveCompleted?.Invoke(this, EventArgs.Empty);
@@ -204,81 +203,6 @@ namespace MAItems
                 this.Close(); // 保存成功時のみフォームを閉じる
             }
         }
-
-        // ── 画面の入力内容をデータベースに保存する ──
-        private void SaveValuationData()
-        {
-            // 1. ValuationData（共通項目・各手法のパラメータ）の保存
-            _valuation.DealId = _deal.Id;
-
-            _valuation.CashAndDeposits = ParseD(txtCash.Text);
-            _valuation.WorkingCapitalMonths = ParseD(txtWCMonths.Text);
-            _valuation.ShortTermDebt = ParseD(txtShortDebt.Text);
-            _valuation.LongTermDebt = ParseD(txtLongDebt.Text);
-            _valuation.LeaseObligations = ParseD(txtLease.Text);
-            _valuation.OtherLiabilities = ParseD(txtOtherDebt.Text);
-
-            _valuation.NetAssetValue = ParseD(txtBookNetAsset.Text);
-            _valuation.EBITDABase = ParseD(txtEBITDA_Calc.Text);
-            _valuation.EBITDAMultiple = ParseD(txtEBITDAMultiple.Text);
-            _valuation.NOI = ParseD(txtOpProfit_Direct.Text);
-            _valuation.CapRate = ParseD(txtCapRate.Text);
-
-            // 算出された最終的な株式価値も保存しておく（一覧画面等での表示用）
-            _valuation.EBITDAEquityValue = ParseD(lblEquity_EBITDA.Text.Replace(" 千円", "").Replace(",", ""));
-            _valuation.DCFEquityValue = ParseD(lblEquity_DCF.Text.Replace(" 千円", "").Replace(",", ""));
-            _valuation.DirectEquityValue = ParseD(lblEquity_Direct.Text.Replace(" 千円", "").Replace(",", ""));
-
-            _financialRepo.UpsertValuationData(_valuation);
-
-            // 2. 純資産法 修正項目の保存
-            var adjustments = new List<NetAssetAdjustment>();
-
-            // 資産の修正 (AdjustType = 1)
-            foreach (DataGridViewRow r in dgvAssetAdj.Rows)
-            {
-                if (r.IsNewRow) continue;
-                adjustments.Add(new NetAssetAdjustment
-                {
-                    AdjustType = 1,
-                    ItemName = r.Cells["ItemName"].Value?.ToString() ?? "",
-                    Amount = ParseD(r.Cells["Amount"].Value),
-                    Remarks = r.Cells["Remarks"].Value?.ToString() ?? ""
-                });
-            }
-
-            // 負債の修正 (AdjustType = 2)
-            foreach (DataGridViewRow r in dgvLiabAdj.Rows)
-            {
-                if (r.IsNewRow) continue;
-                adjustments.Add(new NetAssetAdjustment
-                {
-                    AdjustType = 2,
-                    ItemName = r.Cells["ItemName"].Value?.ToString() ?? "",
-                    Amount = ParseD(r.Cells["Amount"].Value),
-                    Remarks = r.Cells["Remarks"].Value?.ToString() ?? ""
-                });
-            }
-            _financialRepo.SaveNetAssetAdjustments(_deal.Id, adjustments);
-
-            // 3. DCF法 将来計画の保存
-            var dcfProjections = new List<DcfProjection>();
-            foreach (DataGridViewRow r in dgvDcf.Rows)
-            {
-                if (r.IsNewRow) continue;
-                dcfProjections.Add(new DcfProjection
-                {
-                    YearIndex = r.Index,
-                    Revenue = ParseD(r.Cells["Revenue"].Value),
-                    OpProfit = ParseD(r.Cells["OpProfit"].Value),
-                    TaxRate = ParseD(r.Cells["TaxRate"].Value),
-                    DiscountRate = ParseD(r.Cells["DiscountRate"].Value),
-                    TerminalGrowth = ParseD(r.Cells["TerminalGrowth"].Value)
-                });
-            }
-            _financialRepo.SaveDcfProjections(_deal.Id, dcfProjections);
-        }
-
 
 
         #endregion
@@ -414,14 +338,8 @@ namespace MAItems
         /// <summary>
         /// 財務ハイライト用の DataGridView の列・行を構築します。
         /// </summary>
-// ★追加: 表の構築中であることを判定するためのフラグ
-        private bool _isBuildingFinancialGrid = false;
-
         private void BuildFinancialGrid()
         {
-            _isBuildingFinancialGrid = true; // 構築スタート（計算イベントをブロック）
-            try
-            {
                 dgvFinancial.AllowUserToAddRows = false;
                 dgvFinancial.ReadOnly = false;
                 dgvFinancial.RowHeadersVisible = true;
@@ -492,11 +410,6 @@ namespace MAItems
                         row.ReadOnly = true;
                     }
                 }
-            }
-            finally
-            {
-                _isBuildingFinancialGrid = false; // 構築終了
-            }
         }
 
         private void LoadTab3()
@@ -653,162 +566,16 @@ namespace MAItems
         #endregion
 
 
-        /*
+
         #region Tab 4: 株式価値試算
-        
-        private void LoadTab4()
-        {
-            var v = _financialRepo.GetValuationData(_deal.Id) ?? new ValuationData { DealId = _deal.Id };
-            _valuation = v;
 
-            txtValNetAsset.Text = N(v.NetAssetValue);
-            txtValNetNote.Text = v.NetAssetNote;
 
-            txtValEBITDA.Text = N(v.EBITDABase);
-            txtValEBITDAYear.Text = v.EBITDABaseYear;
-            txtValMultiple.Text = N(v.EBITDAMultiple);
-            txtValEBITDANet.Text = N(v.EBITDANetCashDebt);
-            txtValEBITDANote.Text = v.EBITDANote;
 
-            txtValDCFRate.Text = N(v.DCFDiscountRate);
-            txtValDCFGrowth.Text = N(v.DCFTerminalGrowth);
-            txtValDCFEV.Text = N(v.DCFEV);
-            txtValDCFNet.Text = N(v.DCFNetCashDebt);
-            txtValDCFNote.Text = v.DCFNote;
 
-            txtValNOI.Text = N(v.NOI);
-            txtValCapRate.Text = N(v.CapRate);
-            txtValDirectNet.Text = N(v.DirectNetCashDebt);
-            txtValDirectNote.Text = v.DirectNote;
 
-            txtValNote.Text = v.ValuationNote;
-
-            // 初期ロード時にも計算処理を走らせて結果ラベルを更新する
-            RecalcValuation();
-        }
-
-        private void FormToValuation()
-        {
-            _valuation.DealId = _deal.Id;
-            _valuation.NetAssetValue = Parse(txtValNetAsset.Text);
-            _valuation.NetAssetNote = txtValNetNote.Text.Trim();
-
-            _valuation.EBITDABase = Parse(txtValEBITDA.Text);
-            _valuation.EBITDABaseYear = txtValEBITDAYear.Text.Trim();
-            _valuation.EBITDAMultiple = Parse(txtValMultiple.Text);
-            _valuation.EBITDANetCashDebt = Parse(txtValEBITDANet.Text);
-            _valuation.EBITDANote = txtValEBITDANote.Text.Trim();
-
-            _valuation.DCFDiscountRate = Parse(txtValDCFRate.Text);
-            _valuation.DCFTerminalGrowth = Parse(txtValDCFGrowth.Text);
-            _valuation.DCFEV = Parse(txtValDCFEV.Text);
-            _valuation.DCFNetCashDebt = Parse(txtValDCFNet.Text);
-            _valuation.DCFNote = txtValDCFNote.Text.Trim();
-
-            _valuation.NOI = Parse(txtValNOI.Text);
-            _valuation.CapRate = Parse(txtValCapRate.Text);
-            _valuation.DirectNetCashDebt = Parse(txtValDirectNet.Text);
-            _valuation.DirectNote = txtValDirectNote.Text.Trim();
-
-            _valuation.ValuationNote = txtValNote.Text.Trim();
-
-            // 保存直前にも再計算してモデルに結果をセットする
-            RecalcValuation();
-        }
-
-        /// <summary>
-        /// 入力値から各手法の株式価値を自動計算してラベルに表示します。
-        /// </summary>
-        private void RecalcValuation()
-        {
-            // EBITDAマルチプル
-            double? ebitda = Parse(txtValEBITDA.Text);
-            double? multiple = Parse(txtValMultiple.Text);
-            double? ebitdaNet = Parse(txtValEBITDANet.Text);
-            if (ebitda.HasValue && multiple.HasValue)
-            {
-                double ev = ebitda.Value * multiple.Value;
-                double eq = ev + (ebitdaNet ?? 0);
-                _valuation.EBITDAEquityValue = eq;
-                lblValEBITDAResult.Text = $"EV: {ev:N0} 千円　→　株式価値: {eq:N0} 千円";
-            }
-            else
-            {
-                lblValEBITDAResult.Text = "（入力値が不足しています）";
-            }
-
-            // DCF法
-            double? dcfEV = Parse(txtValDCFEV.Text);
-            double? dcfNet = Parse(txtValDCFNet.Text);
-            if (dcfEV.HasValue)
-            {
-                double eq = dcfEV.Value + (dcfNet ?? 0);
-                _valuation.DCFEquityValue = eq;
-                lblValDCFResult.Text = $"株式価値: {eq:N0} 千円";
-            }
-            else
-            {
-                lblValDCFResult.Text = "（入力値が不足しています）";
-            }
-
-            // 直接還元法
-            double? noi = Parse(txtValNOI.Text);
-            double? capRate = Parse(txtValCapRate.Text);
-            double? dirNet = Parse(txtValDirectNet.Text);
-            if (noi.HasValue && capRate.HasValue && capRate.Value != 0)
-            {
-                double ev = noi.Value / (capRate.Value / 100.0);
-                double eq = ev + (dirNet ?? 0);
-                _valuation.DirectEquityValue = eq;
-                lblValDirectResult.Text = $"EV: {ev:N0} 千円　→　株式価値: {eq:N0} 千円";
-            }
-            else
-            {
-                lblValDirectResult.Text = "（入力値が不足しています）";
-            }
-
-            // 純資産法
-            double? netAsset = Parse(txtValNetAsset.Text);
-            if (netAsset.HasValue)
-                lblValNetAssetResult.Text = $"株式価値: {netAsset.Value:N0} 千円";
-            else
-                lblValNetAssetResult.Text = "（入力値が不足しています）";
-
-            UpdateValuationSummary();
-        }
-
-        private void UpdateValuationSummary()
-        {
-            var values = new List<double>();
-            if (_valuation.NetAssetValue.HasValue) values.Add(_valuation.NetAssetValue.Value);
-            if (_valuation.EBITDAEquityValue.HasValue) values.Add(_valuation.EBITDAEquityValue.Value);
-            if (_valuation.DCFEquityValue.HasValue) values.Add(_valuation.DCFEquityValue.Value);
-            if (_valuation.DirectEquityValue.HasValue) values.Add(_valuation.DirectEquityValue.Value);
-
-            if (values.Count == 0)
-            {
-                lblValSummary.Text = "試算結果がありません";
-                return;
-            }
-
-            double min = double.MaxValue, max = double.MinValue;
-            foreach (double v in values)
-            {
-                if (v < min) min = v;
-                if (v > max) max = v;
-            }
-            lblValSummary.Text = $"株式価値レンジ：{min:N0} 〜 {max:N0} 千円";
-        }
-
-        // 入力値変更時に自動で再計算を走らせるイベント
-        private void ValuationInput_Changed(object? sender, EventArgs e) => RecalcValuation();
-
-        // 共通変換メソッド
-        private static string N(double? v) => v.HasValue ? v.Value.ToString("N0") : string.Empty;
-        private static double? Parse(string s) { string cleaned = s.Replace(",", "").Trim(); return double.TryParse(cleaned, out double d) ? d : null; }
 
         #endregion
-        */
+
 
         #region Tab 5: 添付資料
 
@@ -1133,6 +900,7 @@ namespace MAItems
             SetStatus($"✔ 表データを取り込みました（{updateCount} セル更新）", isError: false);
         }
         #endregion
+
 
 
         #region 共通ユーティリティ
