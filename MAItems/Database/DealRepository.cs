@@ -19,7 +19,7 @@ namespace MAItems.Database
         {
             var list = new List<Deal>();
             using var conn = _context.GetConnection();
-            using var cmd = new SqliteCommand("SELECT * FROM Deals ORDER BY LastUpdatedAt, Id;", conn);
+            using var cmd = new SqliteCommand("SELECT * FROM Deals ORDER BY IsProcessing, LastUpdatedAt, Id;", conn);
             using var reader = cmd.ExecuteReader();
             while (reader.Read()) list.Add(MapDeal(reader));
             return list;
@@ -45,7 +45,7 @@ namespace MAItems.Database
             if (!string.IsNullOrEmpty(fromDate)) sb.Append(" AND InputDate >= @FromDate");
             if (!string.IsNullOrEmpty(toDate)) sb.Append(" AND InputDate <= @ToDate");
             if (!string.IsNullOrEmpty(keyword)) sb.Append(" AND (Title LIKE @kw OR BusinessContent LIKE @kw OR Area LIKE @kw OR BrokerCompany LIKE @kw OR Status LIKE @kw)");
-            sb.Append(" ORDER BY LastUpdatedAt, Id;");
+            sb.Append(" ORDER BY IsProcessing, LastUpdatedAt, Id;");
 
             using var cmd = new SqliteCommand(sb.ToString(), conn);
             if (!string.IsNullOrEmpty(fromDate)) cmd.Parameters.AddWithValue("@FromDate", fromDate);
@@ -166,7 +166,7 @@ namespace MAItems.Database
         {
             var list = new List<DealNumeric>();
             using var conn = _context.GetConnection();
-            using var cmd = new SqliteCommand("SELECT * FROM DealsNumeric ORDER BY LastUpdatedAt, Id;", conn);
+            using var cmd = new SqliteCommand("SELECT * FROM DealsNumeric ORDER BY ConvertedAt, Id;", conn);
             using var reader = cmd.ExecuteReader();
             while (reader.Read()) list.Add(MapDealNumeric(reader));
             return list;
@@ -176,7 +176,7 @@ namespace MAItems.Database
         {
             var list = new List<DealNumeric>();
             using var conn = _context.GetConnection();
-            string sql = @"SELECT * FROM DealsNumeric WHERE Title LIKE @kw OR BusinessContent LIKE @kw OR Area LIKE @kw OR BrokerCompany LIKE @kw OR Status LIKE @kw ORDER BY LastUpdatedAt, Id;";
+            string sql = @"SELECT * FROM DealsNumeric WHERE Title LIKE @kw OR BusinessContent LIKE @kw OR Area LIKE @kw OR BrokerCompany LIKE @kw OR Status LIKE @kw ORDER BY ConvertedAt, Id;";
             using var cmd = new SqliteCommand(sql, conn);
             cmd.Parameters.AddWithValue("@kw", $"%{keyword}%");
             using var reader = cmd.ExecuteReader();
@@ -247,5 +247,40 @@ namespace MAItems.Database
         {
             cmd.Parameters.AddWithValue("@InputDate", d.InputDate); cmd.Parameters.AddWithValue("@Route", d.Route); cmd.Parameters.AddWithValue("@BrokerCompany", d.BrokerCompany); cmd.Parameters.AddWithValue("@Title", d.Title); cmd.Parameters.AddWithValue("@DealId", d.DealId); cmd.Parameters.AddWithValue("@BusinessContent", d.BusinessContent); cmd.Parameters.AddWithValue("@Area", d.Area); cmd.Parameters.AddWithValue("@Revenue", d.Revenue); cmd.Parameters.AddWithValue("@OperatingProfit", d.OperatingProfit); cmd.Parameters.AddWithValue("@EBITDA", d.EBITDA); cmd.Parameters.AddWithValue("@NetAssets", d.NetAssets); cmd.Parameters.AddWithValue("@TotalAssets", d.TotalAssets); cmd.Parameters.AddWithValue("@NetCashDebt", d.NetCashDebt); cmd.Parameters.AddWithValue("@CashEquivalents", d.CashEquivalents); cmd.Parameters.AddWithValue("@InterestBearingDebt", d.InterestBearingDebt); cmd.Parameters.AddWithValue("@EmployeeCount", d.EmployeeCount); cmd.Parameters.AddWithValue("@Features", d.Features); cmd.Parameters.AddWithValue("@AskingPrice", d.AskingPrice); cmd.Parameters.AddWithValue("@TransferType", d.TransferType); cmd.Parameters.AddWithValue("@TransferReason", d.TransferReason); cmd.Parameters.AddWithValue("@TransferConditions", d.TransferConditions); cmd.Parameters.AddWithValue("@Status", d.Status); cmd.Parameters.AddWithValue("@AttachmentsSummary", d.AttachmentsSummary ?? ""); cmd.Parameters.AddWithValue("@IsProcessing", d.IsProcessing ? 1 : 0); cmd.Parameters.AddWithValue("@LastUpdatedAt", d.LastUpdatedAt ?? "");
         }
+
+        // ══════════════════════════════════════════════════════
+        // 条件（売上10億以上 且つ 利益率かEBITDA率が8%以上）を満たす案件IDとハイライト列を取得
+        // ══════════════════════════════════════════════════════
+        public Dictionary<long, (bool isOpHigh, bool isEbitdaHigh)> GetHighPerformerHighlights()
+        {
+            var result = new Dictionary<long, (bool, bool)>();
+            using var conn = _context.GetConnection();
+
+            // 💡 修正: SQLite特有の「文字列判定」を防ぐため、CAST(〜 AS REAL) で強制的に数値として比較・計算させる
+            string sql = @"
+                SELECT 
+                    Id,
+                    CASE WHEN CAST(OperatingProfit AS REAL) >= CAST(Revenue AS REAL) * 0.08 THEN 1 ELSE 0 END AS IsOpHigh,
+                    CASE WHEN CAST(EBITDA AS REAL) >= CAST(Revenue AS REAL) * 0.08 THEN 1 ELSE 0 END AS IsEbitdaHigh
+                FROM DealsNumeric 
+                WHERE CAST(Revenue AS REAL) >= 1000000000 
+                  AND CAST(Revenue AS REAL) > 0 
+                  AND (CAST(OperatingProfit AS REAL) >= CAST(Revenue AS REAL) * 0.08 OR CAST(EBITDA AS REAL) >= CAST(Revenue AS REAL) * 0.08);";
+
+            using var cmd = new SqliteCommand(sql, conn);
+            using var reader = cmd.ExecuteReader();
+
+            while (reader.Read())
+            {
+                long id = reader.GetInt64(0);
+                bool isOpHigh = reader.GetInt32(1) == 1;
+                bool isEbitdaHigh = reader.GetInt32(2) == 1;
+
+                result[id] = (isOpHigh, isEbitdaHigh);
+            }
+
+            return result;
+        }
+
     }
 }

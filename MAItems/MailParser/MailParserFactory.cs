@@ -1,4 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using MAItems.MailParser.Parsers;
+using System.Collections.Generic;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace MAItems.MailParser
 {
@@ -13,8 +16,12 @@ namespace MAItems.MailParser
         private static readonly List<IMailParser> _parsers =
             new List<IMailParser>
         {
+            new Parsers.OndeckParser(),
+            new Parsers.MACapitalMultiParser(),
             new Parsers.MACapitalParser(),
             new Parsers.MASoukenParser(),
+            new Parsers.IntegroupParser(),
+
             // 将来追加例：
             // new Parsers.MitsubishiUFJParser(),
             // new Parsers.MAResearchParser(),
@@ -40,5 +47,33 @@ namespace MAItems.MailParser
         /// </summary>
         public static IReadOnlyList<IMailParser> GetAllParsers()
             => _parsers.AsReadOnly();
+    
+
+        public static async Task<List<ParsedDeal>> ParseAndEnrichAsync(string mailBody)
+        {
+            var parser = GetParser(mailBody);
+
+            // 対応するパーサーが無い場合は空リストを返す
+            if (parser == null) return new List<ParsedDeal>();
+
+            // 1. まずは通常通りテキストからデータを解析
+            var deals = parser.Parse(mailBody);
+
+            // 2. 解析結果にURLがあれば、裏側でWebデータを取りに行く
+            foreach (var deal in deals)
+            {
+                // Features（備考）などからURLを抽出
+                var urlMatch = Regex.Match(deal.Features ?? "", @"URL:\s*(https?://\S+)");
+                if (urlMatch.Success)
+                {
+                    string targetUrl = urlMatch.Groups[1].Value;
+                    // WebScraperを呼び出して足りない項目を上書き
+                    await WebScraper.EnrichDealFromWebAsync(deal, targetUrl);
+                }
+            }
+
+            return deals;
+        }
+
     }
 }

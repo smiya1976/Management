@@ -704,23 +704,25 @@ namespace MAItems
         /// <summary>
         /// クリップボードのメールテキストから案件情報を抽出し、フォームに自動入力します。
         /// </summary>
-        private void btnPasteFromMail_Click(object? sender, EventArgs e)
+ // 💡 追加: メソッドに async を付与
+        private async void btnPasteFromMail_Click(object? sender, EventArgs e)
         {
             string mailBody = Clipboard.GetText();
             if (string.IsNullOrWhiteSpace(mailBody)) { SetStatus("⚠ クリップボードにテキストがありません", isError: true); return; }
 
-            var parser = MailParserFactory.GetParser(mailBody);
-            if (parser == null) { SetStatus("⚠ 対応する仲介会社のフォーマットが見つかりません", isError: true); return; }
+            // 💡 変更: パーサーの取得・テキスト解析・Webスクレイピングを1行で非同期実行
+            List<ParsedDeal> parsedList = await MailParserFactory.ParseAndEnrichAsync(mailBody);
 
-            // 変更：パーサーから複数案件のリストを受け取る
-            List<ParsedDeal> parsedList = parser.Parse(mailBody);
+            if (parsedList == null || parsedList.Count == 0)
+            {
+                SetStatus("⚠ 対応する仲介会社のフォーマットが見つからないか、情報を抽出できませんでした", isError: true);
+                return;
+            }
 
-            if (parsedList.Count == 0) { SetStatus("⚠ 案件情報を抽出できませんでした", isError: true); return; }
-
-            // 1件目は現在の画面（テキストボックス）に適用する
+            // 1件目は現在の画面（テキストボックス）に適用する（既存のまま）
             ApplyParsedDeal(parsedList[0]);
 
-            // 2件目以降が存在する場合は確認ダイアログを出す
+            // 2件目以降が存在する場合は確認ダイアログを出す（既存のまま）
             if (parsedList.Count > 1)
             {
                 var confirm = MessageBox.Show(

@@ -28,10 +28,12 @@ namespace MAItems
         public MainForm()
         {
             InitializeComponent();
+            this.dgvData.DataBindingComplete += dgvData_DataBindingComplete;
 
             // クラスを役割ごとに初期化
             _context = new DatabaseContext();
             _db = new DealRepository(_context); // _dbの中身を差し替える
+            InitializePageSizeCombo();
 
             SetupGrid();
             LoadData();
@@ -393,6 +395,55 @@ namespace MAItems
         {
             if (e.KeyCode == Keys.Escape)
                 SetStatus("編集をキャンセルしました");
+        }
+
+        // ══════════════════════════════════════════════════════
+        // 一覧データのバインド完了時に、DBの判定に従ってセルをハイライトする
+        // ══════════════════════════════════════════════════════
+        private void dgvData_DataBindingComplete(object? sender, DataGridViewBindingCompleteEventArgs e)
+        {
+            Color highlightColor = Color.LightGoldenrodYellow;
+
+            // 1. DBからハイライト対象のIDリストと列フラグを一括取得
+            var highPerformers = _db.GetHighPerformerHighlights();
+
+            foreach (DataGridViewRow row in dgvData.Rows)
+            {
+                if (row.IsNewRow) continue;
+
+                // バインドされているオブジェクトから確実にIDを取得
+                long id = 0;
+                if (row.DataBoundItem is DealNumeric dNum) id = dNum.Id;
+                else if (row.DataBoundItem is Deal dText) id = dText.Id;
+
+                // 一旦セルの色をリセット
+                SetCellColor(row, "Revenue", Color.Empty);
+                SetCellColor(row, "OperatingProfit", Color.Empty);
+                SetCellColor(row, "EBITDA", Color.Empty);
+
+                // 2. この行のIDが、DBから抽出した優良案件リストに含まれているかチェック
+                if (highPerformers.TryGetValue(id, out var flags))
+                {
+                    // 売上高は全体条件を満たしているので必ずハイライト
+                    SetCellColor(row, "Revenue", highlightColor);
+
+                    // DBから受け取ったフラグに従って、合致した列のみをハイライト
+                    if (flags.isOpHigh)
+                        SetCellColor(row, "OperatingProfit", highlightColor);
+
+                    if (flags.isEbitdaHigh)
+                        SetCellColor(row, "EBITDA", highlightColor);
+                }
+            }
+        }
+
+        // 指定した列名が存在する場合のみ安全にセルの色を変えるヘルパーメソッド
+        private void SetCellColor(DataGridViewRow row, string colName, Color color)
+        {
+            if (row.DataGridView?.Columns.Contains(colName) == true)
+            {
+                row.Cells[colName].Style.BackColor = color;
+            }
         }
 
         // ══════════════════════════════════════════════════════

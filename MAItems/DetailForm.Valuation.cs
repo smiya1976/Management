@@ -153,7 +153,7 @@ namespace MAItems
             // すでにクラス内に読み込まれている _highlights リストを安全に使用します
             if (_highlights == null || _highlights.Count == 0)
             {
-                MessageBox.Show("財務データがまだ登録されていないか、読み込めていません。", "通知", MessageBoxButtons.OK, MessageBoxIcon.Information);
+             //   MessageBox.Show("財務データがまだ登録されていないか、読み込めていません。", "通知", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
  
