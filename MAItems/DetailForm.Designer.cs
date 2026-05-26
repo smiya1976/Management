@@ -30,6 +30,10 @@ namespace MAItems
         private Button btnAddFile, btnOpenFile, btnDeleteFile;
         private Button btnPasteFinancial;
 
+        // ▼ 今回追加：株式価値試算の数式・ロジック可視化用コントロール
+        private Label lblLogicTitle;
+        private RichTextBox rtbFormulaFlow;
+
         // フッターボタン群
         private Button btnPasteFromMail;
         private Button btnPrev;
@@ -67,14 +71,14 @@ namespace MAItems
             tabMain.Location = new Point(0, 36);
             tabMain.Name = "tabMain";
             tabMain.SelectedIndex = 0;
-            tabMain.Size = new Size(848, 630);
+            tabMain.Size = new Size(980, 630);
             tabMain.TabIndex = 1;
             // 
             // tabPage1
             // 
             tabPage1.Location = new Point(4, 24);
             tabPage1.Name = "tabPage1";
-            tabPage1.Size = new Size(840, 602);
+            tabPage1.Size = new Size(972, 602);
             tabPage1.TabIndex = 0;
             tabPage1.Text = "基本情報";
             // 
@@ -82,7 +86,7 @@ namespace MAItems
             // 
             tabPage2.Location = new Point(4, 24);
             tabPage2.Name = "tabPage2";
-            tabPage2.Size = new Size(836, 582);
+            tabPage2.Size = new Size(972, 602);
             tabPage2.TabIndex = 1;
             tabPage2.Text = "会社基礎情報";
             // 
@@ -90,7 +94,7 @@ namespace MAItems
             // 
             tabPage3.Location = new Point(4, 24);
             tabPage3.Name = "tabPage3";
-            tabPage3.Size = new Size(836, 582);
+            tabPage3.Size = new Size(972, 602);
             tabPage3.TabIndex = 2;
             tabPage3.Text = "財務ハイライト";
             // 
@@ -98,7 +102,7 @@ namespace MAItems
             // 
             tabPage4.Location = new Point(4, 24);
             tabPage4.Name = "tabPage4";
-            tabPage4.Size = new Size(836, 582);
+            tabPage4.Size = new Size(972, 602);
             tabPage4.TabIndex = 3;
             tabPage4.Text = "株式価値試算";
             // 
@@ -109,7 +113,7 @@ namespace MAItems
             pnlHeader.Controls.Add(lblIdValue);
             pnlHeader.Location = new Point(0, 0);
             pnlHeader.Name = "pnlHeader";
-            pnlHeader.Size = new Size(864, 36);
+            pnlHeader.Size = new Size(980, 36);
             pnlHeader.TabIndex = 0;
             // 
             // lblIdValue
@@ -136,7 +140,7 @@ namespace MAItems
             // btnPrev
             // 
             btnPrev.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
-            btnPrev.Location = new Point(360, 669);
+            btnPrev.Location = new Point(490, 669);
             btnPrev.Name = "btnPrev";
             btnPrev.Size = new Size(80, 30);
             btnPrev.TabIndex = 3;
@@ -146,7 +150,7 @@ namespace MAItems
             // btnNext
             // 
             btnNext.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
-            btnNext.Location = new Point(446, 669);
+            btnNext.Location = new Point(576, 669);
             btnNext.Name = "btnNext";
             btnNext.Size = new Size(80, 30);
             btnNext.TabIndex = 4;
@@ -157,7 +161,7 @@ namespace MAItems
             // 
             btnSave.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
             btnSave.BackColor = Color.LightGreen;
-            btnSave.Location = new Point(532, 669);
+            btnSave.Location = new Point(662, 669);
             btnSave.Name = "btnSave";
             btnSave.Size = new Size(160, 30);
             btnSave.TabIndex = 5;
@@ -168,7 +172,7 @@ namespace MAItems
             // btnClose
             // 
             btnClose.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
-            btnClose.Location = new Point(698, 669);
+            btnClose.Location = new Point(828, 669);
             btnClose.Name = "btnClose";
             btnClose.Size = new Size(130, 30);
             btnClose.TabIndex = 6;
@@ -180,12 +184,12 @@ namespace MAItems
             lblStatus.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             lblStatus.Location = new Point(12, 708);
             lblStatus.Name = "lblStatus";
-            lblStatus.Size = new Size(820, 23);
+            lblStatus.Size = new Size(950, 23);
             lblStatus.TabIndex = 7;
             // 
             // DetailForm
             // 
-            ClientSize = new Size(848, 701);
+            ClientSize = new Size(980, 701);
             Controls.Add(pnlHeader);
             Controls.Add(tabMain);
             Controls.Add(btnPasteFromMail);
@@ -194,7 +198,7 @@ namespace MAItems
             Controls.Add(btnSave);
             Controls.Add(btnClose);
             Controls.Add(lblStatus);
-            MinimumSize = new Size(700, 600);
+            MinimumSize = new Size(900, 600);
             Name = "DetailForm";
             StartPosition = FormStartPosition.CenterParent;
             Text = "案件詳細";
@@ -313,7 +317,7 @@ namespace MAItems
         private void BuildTab3()
         {
             this.dgvFinancial = new DataGridView();
-            var lblNote = new Label { Text = "単位：百万円　　期ラベルはヘッダーをダブルクリックして編集できます", Location = new Point(4, 4), Size = new Size(400, 20), Font = new Font("Yu Gothic UI", 8.5F), ForeColor = Color.DimGray };
+            var lblNote = new Label { Text = "単位：百万円  期ラベルはヘッダーをダブルクリックして編集できます", Location = new Point(4, 4), Size = new Size(400, 20), Font = new Font("Yu Gothic UI", 8.5F), ForeColor = Color.DimGray };
 
             this.btnPasteFinancial = new Button
             {
@@ -325,7 +329,7 @@ namespace MAItems
             this.btnPasteFinancial.Click += new EventHandler(this.btnPasteFinancial_Click);
 
             this.dgvFinancial.Location = new Point(4, 28);
-            this.dgvFinancial.Size = new Size(820, 545);
+            this.dgvFinancial.Size = new Size(960, 545);
             this.dgvFinancial.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
 
             this.tabPage3.Controls.Add(lblNote);
@@ -333,8 +337,48 @@ namespace MAItems
             this.tabPage3.Controls.Add(this.dgvFinancial);
         }
 
+        // ══════════════════════════════════════════════════════
+        // ★修正: タブ4（バリュエーション画面）のUI構築
+        // ══════════════════════════════════════════════════════
         private void BuildTab4()
         {
+            // ── 新規追加: 右側に「数式マップ」を表示するためのパネルを配置 ──
+            Panel pnlFormula = new Panel
+            {
+                Dock = DockStyle.Right,
+                Width = 340, // 右側に340pxの専用幅を確保
+                Padding = new Padding(8),
+                BackColor = Color.FromArgb(245, 248, 250) // 見やすい薄いブルーグレーの背景
+            };
+
+            lblLogicTitle = new Label
+            {
+                Text = "💡 計算フロー ＆ ロジック",
+                Dock = DockStyle.Top,
+                Font = new Font("Yu Gothic UI", 10F, FontStyle.Bold),
+                Height = 30,
+                TextAlign = ContentAlignment.BottomLeft,
+                ForeColor = Color.DarkSlateGray,
+                Padding = new Padding(0, 0, 0, 4)
+            };
+
+            rtbFormulaFlow = new RichTextBox
+            {
+                Dock = DockStyle.Fill,
+                ReadOnly = true,
+                BackColor = Color.White,
+                Font = new Font("Yu Gothic UI", 9.5F),
+                BorderStyle = BorderStyle.FixedSingle,
+                Text = "左側の数値を入力すると、ここに計算式と結果がリアルタイムに表示されます。"
+            };
+
+            pnlFormula.Controls.Add(rtbFormulaFlow);
+            pnlFormula.Controls.Add(lblLogicTitle);
+
+            // 先に右パネルをTabPageに追加（これにより、後続のUIが左側の残りスペースを正しく埋めます）
+            this.tabPage4.Controls.Add(pnlFormula);
+
+            // 既存のバリュエーション入力UIの構築（左側に展開されます）
             BuildValuationUI(this.tabPage4);
         }
 

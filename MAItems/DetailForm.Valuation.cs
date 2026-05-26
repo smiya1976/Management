@@ -30,6 +30,7 @@ namespace MAItems
         private Label lblEV_EBITDA = new Label(), lblEquity_EBITDA = new Label();
 
         private Label lblEV_DCF = new Label(), lblEquity_DCF = new Label();
+        private TextBox txtWacc = new TextBox();
 
         private TextBox txtOpProfit_Direct = new TextBox(), txtTaxRate_Direct = new TextBox(), txtCapRate = new TextBox();
         private Label lblEV_Direct = new Label(), lblEquity_Direct = new Label();
@@ -116,9 +117,22 @@ namespace MAItems
 
             // ── タブ3: DCF法 ──
             int y3 = 10;
+            txtWacc = AddInput(tabDCF, "WACC (割引率 %)", ref y3);
+            txtWacc.Text = "7.3"; // 初期値
+
+            // WACCを変更したら、表内のすべての「割引率」を一括更新するイベント
+            txtWacc.TextChanged += (s, e) => {
+                double currentWacc = ParseD(txtWacc.Text);
+                foreach (DataGridViewRow r in dgvDcf.Rows)
+                {
+                    if (!r.IsNewRow) r.Cells["DiscountRate"].Value = currentWacc;
+                }
+            };
+
             SetupDcfGrid(tabDCF, ref y3);
             lblEV_DCF = AddResult(tabDCF, "事業価値 (PV合計)", ref y3);
             lblEquity_DCF = AddResult(tabDCF, "株式価値", ref y3);
+
 
             // ── タブ4: 直接還元法 ──
             int y4 = 10;
@@ -278,55 +292,118 @@ namespace MAItems
             // デザイナーファイルで定義したコントロールがまだ無い場合はスキップ
             if (rtbFormulaFlow == null) return;
 
-            // 1. 共通項目（右側パネル）の計算を再現
+            // 1. 共通項目（右側パネル）の数値をパース
             double cash = ParseD(txtCash.Text);
             double wcMonths = ParseD(txtWCMonths.Text);
             double debt = ParseD(txtShortDebt.Text) + ParseD(txtLongDebt.Text) + ParseD(txtLease.Text) + ParseD(txtOtherDebt.Text);
 
-            // 月商と非事業資産の計算（CalculateValuationと同じロジック）
+            // 財務ハイライトから最新の実績売上高を取得して月商を算出
             double latestRev = _highlights.Where(h => h.PeriodType == "actual").OrderByDescending(h => h.PeriodOrder).FirstOrDefault()?.Revenue ?? 0;
             double workingCapital = (latestRev / 12.0) * wcMonths;
             double nonOpAssets = Math.Max(0, cash - workingCapital);
 
-            // 2. 各手法の固有入力を取得
+            // 2. 各手法の固有入力をパース
+            double bookNet = ParseD(txtBookNetAsset.Text);
+            double assetAdj = GetGridTotal(dgvAssetAdj, "Amount");
+            double liabAdj = GetGridTotal(dgvLiabAdj, "Amount");
+            double marketNet = bookNet + assetAdj - liabAdj;
+
+            double opProfit_NA = ParseD(txtOpProfit_NA.Text);
+            double taxRate_NA = ParseD(txtTaxRate_NA.Text);
+            double noplat_NA = opProfit_NA * (1 - (taxRate_NA / 100.0));
+            double goodwillYears = ParseD(txtGoodwillYears.Text);
+            double goodwill = noplat_NA * goodwillYears;
+
             double ebitda = ParseD(txtEBITDA_Calc.Text);
             double multiple = ParseD(txtEBITDAMultiple.Text);
+            double ev_EBITDA = ebitda * multiple;
 
-            double noplat_NA = ParseD(txtOpProfit_NA.Text) * (1 - (ParseD(txtTaxRate_NA.Text) / 100.0));
-            double goodwillYears = ParseD(txtGoodwillYears.Text);
+            double ev_DCF = ParseD(lblEV_DCF.Text.Replace(" 百万円", "").Replace(",", ""));
+            double ev_Direct = ParseD(lblEV_Direct.Text.Replace(" 百万円", "").Replace(",", ""));
 
-            // 3. 表示用テキストの組み立て（数式マップ）
+            // 3. 表示テキストの組み立て
             var sb = new System.Text.StringBuilder();
 
             sb.AppendLine("■──【 共通の調整項目 】──────────────────");
-            sb.AppendLine($"  現金・預金等 : {cash:N0}");
-            sb.AppendLine($"  事業必要資金 : {workingCapital:N0} (月商 × {wcMonths}ヶ月)");
-            sb.AppendLine($"  ➔ 非事業資産 : {nonOpAssets:N0} (現金 － 事業必要資金)");
-            sb.AppendLine($"  有利子負債計 : {debt:N0}");
+            sb.AppendLine("  [ロジック] 非事業資産 ＝ 現金預金 － (月商 × 運転資金月数)");
+            sb.AppendLine($"  [計 算] {cash:N0} － ({latestRev / 12.0:N0} × {wcMonths}ヶ月) ＝ ➔ 非事業資産: {nonOpAssets:N0} 百万円");
+            sb.AppendLine($"  [負 債] 有利子負債合計 ＝ ➔ {debt:N0} 百万円");
             sb.AppendLine();
 
-            sb.AppendLine("■──【 ① 純資産法（＋のれん）】───────────");
-            sb.AppendLine($"  時価純資産 : {lblMarketNetAsset.Text.Replace(" 百万円", "")} (簿価 ＋ 資産負債の修正)");
-            sb.AppendLine($"  のれん代  : {lblGoodwill.Text.Replace(" 百万円", "")} (税引後利益 {noplat_NA:N0} × {goodwillYears}年)");
-            sb.AppendLine($"  ➔ 株式価値 ＝ 【 {lblTotal_NA.Text} 】");
+            sb.AppendLine("■──【 ① 純資産法（時価純資産＋営業権）】───────");
+            sb.AppendLine("  [ロジック]:簿価純資産に時価修正を行い、税引後営業利益（NOPLAT）の計上年数分をのれんとして加算する。");
+            sb.AppendLine("    marketNet (時価純資産) ＝ 簿価純資産 ＋ 資産修正 － 負債修正");
+            sb.AppendLine("    goodwill  (のれん)   ＝ 営業利益 × (1 － 税率) × 計上年数");
+            sb.AppendLine("    株式価値             ＝ 時価純資産 ＋ のれん");
+            sb.AppendLine("  [実際の計算]");
+            sb.AppendLine($"    時価純資産 : {bookNet:N0} ＋ {assetAdj:N0} － {liabAdj:N0} ＝ {marketNet:N0} 百万円");
+            sb.AppendLine($"    のれん代   : {opProfit_NA:N0} × (1 － {taxRate_NA}% ) × {goodwillYears}年 ＝ {goodwill:N0} 百万円");
+            sb.AppendLine($"    ➔ 株式価値 ＝ {marketNet:N0} ＋ {goodwill:N0} ＝ 【 {lblTotal_NA.Text} 】");
             sb.AppendLine();
 
             sb.AppendLine("■──【 ② EBITDA法（マルチプル）】─────────");
-            sb.AppendLine($"  事業価値(EV): {lblEV_EBITDA.Text.Replace(" 百万円", "")} (EBITDA {ebitda:N0} × {multiple}倍)");
-            sb.AppendLine($"  株式価値算定: 事業価値 ＋ 現金等({cash:N0}) － 有利子負債({debt:N0})");
-            sb.AppendLine($"  ➔ 株式価値 ＝ 【 {lblEquity_EBITDA.Text} 】");
+            sb.AppendLine("  [ロジック]:EBITDAにマルチプル（倍率）を掛け合わせて事業価値（EV）を算出し、そこから有利子負債を差し引き、現金同等物を加算する");
+            sb.AppendLine("    事業価値 (EV) ＝ EBITDA × マルチプル倍率");
+            sb.AppendLine("    株式価値      ＝ 事業価値 ＋ 現金預金 － 有利子負債");
+            sb.AppendLine("  [実際の計算]");
+            sb.AppendLine($"    事業価値 (EV) : {ebitda:N0} × {multiple}倍 ＝ {ev_EBITDA:N0} 百万円");
+            sb.AppendLine($"    ➔ 株式価値 ＝ {ev_EBITDA:N0} ＋ {cash:N0} － {debt:N0} ＝ 【 {lblEquity_EBITDA.Text} 】");
             sb.AppendLine();
 
             sb.AppendLine("■──【 ③ DCF法 】─────────────────────────");
-            sb.AppendLine($"  事業価値(EV): {lblEV_DCF.Text.Replace(" 百万円", "")} (将来FCFの現在価値合計)");
-            sb.AppendLine($"  株式価値算定: 事業価値 ＋ 非事業資産({nonOpAssets:N0}) － 有利子負債({debt:N0})");
-            sb.AppendLine($"  ➔ 株式価値 ＝ 【 {lblEquity_DCF.Text} 】");
+            sb.AppendLine("  [ロジック]:将来5年間の損益予測（減価償却＝設備投資、運転資本増減なしとしてNOPLAT＝FCFとする）をWACCで割り引き、" );
+            sb.AppendLine("    1. 各期の予測FCF（＝税引後営業利益）をWACCで現在価値(PV)に割引");
+            sb.AppendLine("    2. 6期以降の継続価値(TV) ＝ 6期NOPLAT ÷ (WACC － 永久成長率)");
+            sb.AppendLine("    3. 事業価値 (EV) ＝ 1〜5期PV合計 ＋ TVの現在価値(PV)");
+            sb.AppendLine("    4. 株式価値      ＝ 事業価値 ＋ 非事業資産 － 有利子負債");
+            sb.AppendLine("  [実際の計算フロー]");
+
+            // データグリッド（dgvDcf）から各期間のPVとTVを直接集計して正確に可視化
+            double pvSum1to5 = 0;
+            double tvRaw = 0;
+            double tvPv = 0;
+
+            foreach (DataGridViewRow r in dgvDcf.Rows)
+            {
+                if (r.IsNewRow) continue;
+                string? yearText = r.Cells["Year"].Value?.ToString();
+                double pv = ParseD(r.Cells["PV"].Value);
+
+                if (yearText != null && (yearText.Contains("1期") || yearText.Contains("2期") || yearText.Contains("3期") || yearText.Contains("4期") || yearText.Contains("5期")))
+                {
+                    pvSum1to5 += pv;
+                }
+                else if (yearText != null && yearText.Contains("6期以降"))
+                {
+                    tvPv = pv;
+                    // TV本体の額を逆算（ NOPLAT / (WACC - Growth) ）
+                    double op = ParseD(r.Cells["OpProfit"].Value);
+                    double tax = ParseD(r.Cells["TaxRate"].Value) / 100.0;
+                    double rate = ParseD(r.Cells["DiscountRate"].Value) / 100.0;
+                    double growth = ParseD(r.Cells["TerminalGrowth"].Value) / 100.0;
+                    if (rate - growth > 0)
+                    {
+                        tvRaw = (op * (1 - tax)) / (rate - growth);
+                    }
+                }
+            }
+
+            sb.AppendLine($"    ① 1〜5期 予測FCFの現在価値合計 : {pvSum1to5:N0} 百万円");
+            sb.AppendLine($"    ② 6期以降の継続価値(TV)本体    : {tvRaw:N0} 百万円");
+            sb.AppendLine($"       ➔ TVを5期末時点で現在価値化 : {tvPv:N0} 百万円");
+            sb.AppendLine($"    ③ 事業価値 (EV) [① ＋ ②のPV]  : {pvSum1to5:N0} ＋ {tvPv:N0} ＝ {ev_DCF:N0} 百万円");
+            sb.AppendLine($"    ④ 株式価値の算定：");
+            sb.AppendLine($"       事業価値 ({ev_DCF:N0}) ＋ 非事業資産 ({nonOpAssets:N0}) － 有利子負債 ({debt:N0})");
+            sb.AppendLine($"       ➔ 株式価値 ＝ 【 {lblEquity_DCF.Text} 】");
             sb.AppendLine();
 
             sb.AppendLine("■──【 ④ 直接還元法 】───────────────────");
-            sb.AppendLine($"  事業価値(EV): {lblEV_Direct.Text.Replace(" 百万円", "")} (税引後利益 ÷ 期待利回り)");
-            sb.AppendLine($"  株式価値算定: 事業価値 ＋ 非事業資産({nonOpAssets:N0}) － 有利子負債({debt:N0})");
-            sb.AppendLine($"  ➔ 株式価値 ＝ 【 {lblEquity_Direct.Text} 】");
+            sb.AppendLine("  [ロジック]標準営業利益からNOPLATを求め、還元利回りで割って事業価値を算定。そこに非事業資産を加え、有利子負債を差し引く。");
+            sb.AppendLine("    事業価値 (EV) ＝ { 営業利益 × (1 － 税率) } ÷ 還元利回り");
+            sb.AppendLine("    株式価値      ＝ 事業価値 ＋ 非事業資産 － 有利子負債");
+            sb.AppendLine("  [実際の計算]");
+            sb.AppendLine($"    事業価値 (EV) : {{ {ParseD(txtOpProfit_Direct.Text):N0} × (1 － {ParseD(txtTaxRate_Direct.Text)}%) }} ÷ {ParseD(txtCapRate.Text) / 100.0:P1} ＝ {ev_Direct:N0} 百万円");
+            sb.AppendLine($"    ➔ 株式価値 ＝ {ev_Direct:N0} ＋ {nonOpAssets:N0} － {debt:N0} ＝ 【 {lblEquity_Direct.Text} 】");
 
             rtbFormulaFlow.Text = sb.ToString();
         }
@@ -339,16 +416,36 @@ namespace MAItems
         private void InitializeDcfWithForecasts()
         {
             dgvDcf.Rows.Clear();
+            double wacc = ParseD(txtWacc.Text);
+
+            // 0期（実績）のデータを取得
             var actual = _highlights.Where(h => h.PeriodType == "actual").OrderByDescending(h => h.PeriodOrder).FirstOrDefault();
-            dgvDcf.Rows.Add("0期(実績)", actual?.Revenue ?? 0, actual?.OperatingProfit ?? 0, 30, 0, 7.3, 0);
+
+            // ベースとなる初期値（実績がなければ0）
+            double currentRev = actual?.Revenue ?? 0;
+            double currentOp = actual?.OperatingProfit ?? 0;
+
+            dgvDcf.Rows.Add("0期(実績)", currentRev, currentOp, 30, 0, wacc, 0);
 
             var forecasts = _highlights.Where(h => h.PeriodType == "forecast").OrderBy(h => h.PeriodOrder).ToList();
+
+            // 1期〜5期の予測行を生成
             for (int i = 1; i <= 5; i++)
             {
                 var f = forecasts.ElementAtOrDefault(i - 1);
-                dgvDcf.Rows.Add($"{i}期(予測)", f?.Revenue ?? 0, f?.OperatingProfit ?? 0, 30, 0, 7.3, 0);
+
+                // 💡 予測データが存在すればそれを使い、無ければ「前年のデータ（currentRev/Op）」をそのまま引き継ぐ（横置き）
+                if (f != null && (f.Revenue.HasValue || f.OperatingProfit.HasValue))
+                {
+                    currentRev = f.Revenue ?? currentRev;
+                    currentOp = f.OperatingProfit ?? currentOp;
+                }
+
+                dgvDcf.Rows.Add($"{i}期(予測)", currentRev, currentOp, 30, 0, wacc, 0);
             }
-            dgvDcf.Rows.Add("6期以降(TV)", forecasts.LastOrDefault()?.Revenue ?? 0, forecasts.LastOrDefault()?.OperatingProfit ?? 0, 30, 0, 7.3, 0);
+
+            // 6期以降（ターミナルバリュー）は、最終的にもつれ込んだ5期目の値を引き継ぐ
+            dgvDcf.Rows.Add("6期以降(TV)", currentRev, currentOp, 30, 0, wacc, 0);
         }
 
         // ── UI構築用ヘルパーメソッド群 ──
@@ -373,27 +470,77 @@ namespace MAItems
         }
         private void SetupGrid(DataGridView dgv, Control parent, string title, ref int y)
         {
-            parent.Controls.Add(new Label { Text = title, Location = new Point(15, y) });
-            dgv.Location = new Point(15, y + 20); dgv.Size = new Size(500, 120);
-            dgv.AllowUserToAddRows = true; dgv.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-            dgv.Columns.Add("ItemName", "項目"); dgv.Columns.Add("Amount", "金額(百万円)"); dgv.Columns.Add("Remarks", "備考");
-            parent.Controls.Add(dgv); y += 150;
+            parent.Controls.Add(new Label { Text = title, Location = new Point(15, y), AutoSize = true });
+
+            dgv.Location = new Point(15, y + 20);
+            // 💡 修正: 幅を500の固定値ではなく、左側の画面幅に合わせて可変にする
+            dgv.Size = new Size(Math.Max(400, parent.ClientSize.Width - 40), 120);
+            dgv.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right; // 画面幅に合わせて伸縮
+
+            dgv.AllowUserToAddRows = true;
+            dgv.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill; // 3列しかないので枠いっぱいに広げる
+
+            dgv.Columns.Clear();
+            dgv.Columns.Add("ItemName", "項目");
+            dgv.Columns.Add("Amount", "金額(百万円)");
+            dgv.Columns.Add("Remarks", "備考");
+
+            // 💡 追加: 各列のバランス調整とフォーマット設定
+            dgv.Columns["ItemName"]!.FillWeight = 30; // 項目名はそこそこの幅
+
+            dgv.Columns["Amount"]!.FillWeight = 20;   // 金額は少し狭めに
+            dgv.Columns["Amount"]!.DefaultCellStyle.Format = "N0"; // 金額にカンマ区切りを入れる
+            dgv.Columns["Amount"]!.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight; // 金額を右寄せ
+
+            dgv.Columns["Remarks"]!.FillWeight = 50;  // 備考欄を一番広くする（残りスペースを独占）
+
+            parent.Controls.Add(dgv);
+            y += 150;
         }
         private void SetupDcfGrid(Control parent, ref int y)
         {
-            dgvDcf.Location = new Point(15, y); dgvDcf.Size = new Size(700, 200);
-            dgvDcf.AllowUserToAddRows = false; dgvDcf.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-            string[] cols = { "Year", "Revenue", "OpProfit", "TaxRate", "NOPLAT", "DiscountRate", "TerminalGrowth", "PV" };
-            string[] heads = { "期", "売上高", "営業利益", "税率(%)", "NOPLAT", "割引率(%)", "永久成長率", "現在価値(PV)" };
-            for (int i = 0; i < cols.Length; i++) dgvDcf.Columns.Add(cols[i], heads[i]);
+            {
+                if (parent is TabPage tabPage)
+                {
+                    tabPage.AutoScroll = true;
+                }
 
-            dgvDcf.Columns["Year"]!.ReadOnly = true;
-            dgvDcf.Columns["NOPLAT"]!.ReadOnly = true;
-            dgvDcf.Columns["PV"]!.ReadOnly = true;
-            dgvDcf.Columns["NOPLAT"]!.DefaultCellStyle.BackColor = Color.LightGray;
-            dgvDcf.Columns["PV"]!.DefaultCellStyle.BackColor = Color.LightGray;
+                dgvDcf.Location = new Point(15, y);
+                // 💡 幅を700の固定値ではなく、左側の画面幅に自動で合わせる
+                dgvDcf.Size = new Size(Math.Max(500, parent.ClientSize.Width - 40), 200);
+                dgvDcf.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right; // 画面幅に合わせて伸縮
+                dgvDcf.AllowUserToAddRows = false;
 
-            parent.Controls.Add(dgvDcf); y += 220;
+                // 💡 Fill(無理やり押し込む)を解除し、内容に合わせて横スクロールバーを出す
+                dgvDcf.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
+                dgvDcf.ScrollBars = ScrollBars.Both;
+
+                string[] cols = { "Year", "Revenue", "OpProfit", "TaxRate", "NOPLAT", "DiscountRate", "TerminalGrowth", "PV" };
+                string[] heads = { "期", "売上高", "営業利益", "税率(%)", "NOPLAT", "割引率(%)", "永久成長率", "現在価値(PV)" };
+
+                dgvDcf.Columns.Clear();
+                for (int i = 0; i < cols.Length; i++)
+                {
+                    dgvDcf.Columns.Add(cols[i], heads[i]);
+                    // 列の幅を「90px」など少し広めに確保（文字が見切れないように）
+                   dgvDcf.Columns[cols[i]]!.Width = 90;
+                }
+
+                dgvDcf.Columns["Year"]!.ReadOnly = true;
+                dgvDcf.Columns["NOPLAT"]!.ReadOnly = true;
+                dgvDcf.Columns["PV"]!.ReadOnly = true;
+                dgvDcf.Columns["NOPLAT"]!.DefaultCellStyle.BackColor = Color.LightGray;
+                dgvDcf.Columns["PV"]!.DefaultCellStyle.BackColor = Color.LightGray;
+
+                // PV（現在価値）等が見やすくなるようカンマ区切りフォーマットを追加
+                dgvDcf.Columns["PV"]!.DefaultCellStyle.Format = "N0";
+                dgvDcf.Columns["Revenue"]!.DefaultCellStyle.Format = "N0";
+                dgvDcf.Columns["OpProfit"]!.DefaultCellStyle.Format = "N0";
+                dgvDcf.Columns["NOPLAT"]!.DefaultCellStyle.Format = "N0";
+
+                parent.Controls.Add(dgvDcf);
+                y += 220;
+            }
         }
         private double ParseD(object? val) => double.TryParse(val?.ToString(), out double r) ? r : 0;
         private double GetGridTotal(DataGridView dgv, string col) => dgv.Rows.Cast<DataGridViewRow>().Where(r => !r.IsNewRow).Sum(r => ParseD(r.Cells[col].Value));
@@ -516,6 +663,11 @@ namespace MAItems
 
                 // ③ グリッドの復元
                 var dcfList = finRepo.GetDcfProjections(_deal.Id);
+                var savedWacc = dcfList.FirstOrDefault(p => p.DiscountRate.HasValue)?.DiscountRate;
+                if (savedWacc.HasValue)
+                {
+                    txtWacc.Text = savedWacc.Value.ToString();
+                }
                 foreach (var proj in dcfList)
                 {
                     if (proj.YearIndex >= 0 && proj.YearIndex < dgvDcf.Rows.Count)
