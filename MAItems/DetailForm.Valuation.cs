@@ -39,7 +39,6 @@ namespace MAItems
         /// </summary>
         private void BuildValuationUI(Control container)
         {
-            container.Controls.Clear();
             tabValuation.TabPages.Clear();
             var split = new SplitContainer { Dock = DockStyle.Fill, FixedPanel = FixedPanel.Panel2 };
             this.Load += (s, ev) => {
@@ -47,6 +46,9 @@ namespace MAItems
                 if (split.Width > 300) split.SplitterDistance = split.Width - 300;
             };
             container.Controls.Add(split);
+
+            // 💡 追加: DockStyle.Fill のコントロールを残りのスペースに正しく広げるための魔法の1行
+            split.BringToFront();
 
             // 左側：各手法のタブ
             tabValuation.Dock = DockStyle.Fill;
@@ -263,9 +265,76 @@ namespace MAItems
             double ev_Direct = capRate > 0 ? noplat_Direct / capRate : 0;
             lblEV_Direct.Text = ev_Direct.ToString("#,0") + " 百万円";
             lblEquity_Direct.Text = (ev_Direct + nonOpAssets - debt).ToString("#,0") + " 百万円";
+
+            // 6.数式マップを更新する
+            UpdateFormulaFlow();
         }
 
+        // ══════════════════════════════════════════════════════
+        // 入力値と計算式の関係性をリアルタイムに可視化する
+        // ══════════════════════════════════════════════════════
+        private void UpdateFormulaFlow()
+        {
+            // デザイナーファイルで定義したコントロールがまだ無い場合はスキップ
+            if (rtbFormulaFlow == null) return;
 
+            // 1. 共通項目（右側パネル）の計算を再現
+            double cash = ParseD(txtCash.Text);
+            double wcMonths = ParseD(txtWCMonths.Text);
+            double debt = ParseD(txtShortDebt.Text) + ParseD(txtLongDebt.Text) + ParseD(txtLease.Text) + ParseD(txtOtherDebt.Text);
+
+            // 月商と非事業資産の計算（CalculateValuationと同じロジック）
+            double latestRev = _highlights.Where(h => h.PeriodType == "actual").OrderByDescending(h => h.PeriodOrder).FirstOrDefault()?.Revenue ?? 0;
+            double workingCapital = (latestRev / 12.0) * wcMonths;
+            double nonOpAssets = Math.Max(0, cash - workingCapital);
+
+            // 2. 各手法の固有入力を取得
+            double ebitda = ParseD(txtEBITDA_Calc.Text);
+            double multiple = ParseD(txtEBITDAMultiple.Text);
+
+            double noplat_NA = ParseD(txtOpProfit_NA.Text) * (1 - (ParseD(txtTaxRate_NA.Text) / 100.0));
+            double goodwillYears = ParseD(txtGoodwillYears.Text);
+
+            // 3. 表示用テキストの組み立て（数式マップ）
+            var sb = new System.Text.StringBuilder();
+
+            sb.AppendLine("■──【 共通の調整項目 】──────────────────");
+            sb.AppendLine($"  現金・預金等 : {cash:N0}");
+            sb.AppendLine($"  事業必要資金 : {workingCapital:N0} (月商 × {wcMonths}ヶ月)");
+            sb.AppendLine($"  ➔ 非事業資産 : {nonOpAssets:N0} (現金 － 事業必要資金)");
+            sb.AppendLine($"  有利子負債計 : {debt:N0}");
+            sb.AppendLine();
+
+            sb.AppendLine("■──【 ① 純資産法（＋のれん）】───────────");
+            sb.AppendLine($"  時価純資産 : {lblMarketNetAsset.Text.Replace(" 百万円", "")} (簿価 ＋ 資産負債の修正)");
+            sb.AppendLine($"  のれん代  : {lblGoodwill.Text.Replace(" 百万円", "")} (税引後利益 {noplat_NA:N0} × {goodwillYears}年)");
+            sb.AppendLine($"  ➔ 株式価値 ＝ 【 {lblTotal_NA.Text} 】");
+            sb.AppendLine();
+
+            sb.AppendLine("■──【 ② EBITDA法（マルチプル）】─────────");
+            sb.AppendLine($"  事業価値(EV): {lblEV_EBITDA.Text.Replace(" 百万円", "")} (EBITDA {ebitda:N0} × {multiple}倍)");
+            sb.AppendLine($"  株式価値算定: 事業価値 ＋ 現金等({cash:N0}) － 有利子負債({debt:N0})");
+            sb.AppendLine($"  ➔ 株式価値 ＝ 【 {lblEquity_EBITDA.Text} 】");
+            sb.AppendLine();
+
+            sb.AppendLine("■──【 ③ DCF法 】─────────────────────────");
+            sb.AppendLine($"  事業価値(EV): {lblEV_DCF.Text.Replace(" 百万円", "")} (将来FCFの現在価値合計)");
+            sb.AppendLine($"  株式価値算定: 事業価値 ＋ 非事業資産({nonOpAssets:N0}) － 有利子負債({debt:N0})");
+            sb.AppendLine($"  ➔ 株式価値 ＝ 【 {lblEquity_DCF.Text} 】");
+            sb.AppendLine();
+
+            sb.AppendLine("■──【 ④ 直接還元法 】───────────────────");
+            sb.AppendLine($"  事業価値(EV): {lblEV_Direct.Text.Replace(" 百万円", "")} (税引後利益 ÷ 期待利回り)");
+            sb.AppendLine($"  株式価値算定: 事業価値 ＋ 非事業資産({nonOpAssets:N0}) － 有利子負債({debt:N0})");
+            sb.AppendLine($"  ➔ 株式価値 ＝ 【 {lblEquity_Direct.Text} 】");
+
+            rtbFormulaFlow.Text = sb.ToString();
+        }
+
+        private void HighlightKeywords()
+        {
+            // 必要に応じて「株式価値」や「【 】」の文字色を太字・青色に変える処理
+        }
 
         private void InitializeDcfWithForecasts()
         {
