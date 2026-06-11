@@ -115,6 +115,11 @@ namespace MAItems
             int count = 0;
             foreach (var deal in deals)
             {
+                //インポートする日付文字列を解析し、強制的に yyyy/MM/dd に統一
+                if (!string.IsNullOrWhiteSpace(deal.InputDate) && DateTime.TryParse(deal.InputDate, out var parsedDate))
+                {
+                    deal.InputDate = parsedDate.ToString("yyyy/MM/dd");
+                }
                 // DealId(手入力の案件ID文字列)をキーにして既存を検索
                 var existing = _dealRepo.SearchDeals(deal.DealId).FirstOrDefault(d => d.DealId == deal.DealId);
 

@@ -535,20 +535,22 @@ namespace MAItems
         {
             // 開く前にメイン画面を非表示にする
             this.Hide();
-            // コンテキストをDataSyncFormに渡す
+
+            // コンテキストをDataSyncFormに渡して開く
             using var syncForm = new DataSyncForm(_context);
+            syncForm.ShowDialog(this); // ここでユーザーが閉じるまで待機
 
-            //ダイアログを開き、結果を一旦変数(result)で受け取る
-            DialogResult result = syncForm.ShowDialog(this);
-
-            //画面が閉じられたら（結果がどうであれ）まずはメイン画面を再表示する
+            // 画面が閉じられたらメイン画面を再表示する
             this.Show();
 
-            //その後で、OKが返ってきていればグリッドのデータを更新する
-            if (result == DialogResult.OK)
+            // 結果にかかわらず、無条件でグリッドのデータを最新化する
+            if (_isNumericMode)
             {
-                if (_isNumericMode) LoadDataNumeric(txtSearch.Text.Trim());
-                else LoadData(txtSearch.Text.Trim());
+                LoadDataNumeric(txtSearch.Text.Trim());
+            }
+            else
+            {
+                LoadData(txtSearch.Text.Trim());
             }
         }
 

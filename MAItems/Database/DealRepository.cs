@@ -88,7 +88,8 @@ namespace MAItems.Database
             {
                 string sql = @"INSERT INTO Deals (InputDate, Route, BrokerCompany, Title, DealId, BusinessContent, Area, Revenue, OperatingProfit, EBITDA, NetAssets, TotalAssets, NetCashDebt, CashEquivalents, InterestBearingDebt, EmployeeCount, Features, AskingPrice, TransferType, TransferReason, TransferConditions, Status, AttachmentsSummary, IsProcessing, LastUpdatedAt) VALUES (@InputDate, '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 0, @LastUpdatedAt); SELECT last_insert_rowid();";
                 using var cmd = new SqliteCommand(sql, conn);
-                cmd.Parameters.AddWithValue("@InputDate", DateTime.Now.ToString("yyyy/M/d"));
+
+                cmd.Parameters.AddWithValue("@InputDate", DateTime.Now.ToString("yyyy/MM/d"));
                 cmd.Parameters.AddWithValue("@LastUpdatedAt", now);
                 newId = (long)cmd.ExecuteScalar()!;
             }

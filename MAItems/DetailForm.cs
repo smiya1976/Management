@@ -247,7 +247,15 @@ namespace MAItems
         /// </summary>
         private void FormToDeal()
         {
-            _deal.InputDate = txtInputDate.Text.Trim();
+            string rawDate = txtInputDate.Text.Trim();
+            if (DateTime.TryParse(rawDate, out var parsedDate))
+            {
+                _deal.InputDate = parsedDate.ToString("yyyy/MM/dd");
+            }
+            else
+            {
+                _deal.InputDate = rawDate; // 日付として読めない文字が入っていた場合はそのまま
+            }
             _deal.Route = cmbRoute.Text.Trim();
             _deal.BrokerCompany = txtBrokerCompany.Text.Trim();
             _deal.Title = txtTitle.Text.Trim();
@@ -774,7 +782,14 @@ namespace MAItems
                         var newDeal = new Deal();
                         var p = parsedList[i];
 
-                        newDeal.InputDate = p.InputDate ?? "";
+                        if (!string.IsNullOrWhiteSpace(p.InputDate) && DateTime.TryParse(p.InputDate, out var parsedDate))
+                        {
+                            newDeal.InputDate = parsedDate.ToString("yyyy/MM/dd");
+                        }
+                        else
+                        {
+                            newDeal.InputDate = p.InputDate ?? ""; // 解析不能な場合はそのまま
+                        }
                         newDeal.Route = p.Route ?? "";
                         newDeal.BrokerCompany = p.BrokerCompany ?? "";
                         newDeal.Title = p.Title ?? "";
@@ -815,7 +830,13 @@ namespace MAItems
 
         private void ApplyParsedDeal(ParsedDeal parsed)
         {
-            if (parsed.InputDate != null) txtInputDate.Text = parsed.InputDate;
+            if (parsed.InputDate != null)
+            {
+                if (DateTime.TryParse(parsed.InputDate, out var parsedDate))
+                    txtInputDate.Text = parsedDate.ToString("yyyy/MM/dd");
+                else
+                    txtInputDate.Text = parsed.InputDate;
+            }
             if (parsed.Route != null) cmbRoute.Text = parsed.Route;
             if (parsed.BrokerCompany != null) txtBrokerCompany.Text = parsed.BrokerCompany;
             if (parsed.Title != null) txtTitle.Text = parsed.Title;
