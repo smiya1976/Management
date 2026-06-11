@@ -18,7 +18,10 @@ namespace MAItems
         private Panel pnlHeader;
         private Label lblIdValue;
         private TableLayoutPanel tblLayout;
-        private TextBox txtInputDate, txtRoute, txtBrokerCompany, txtTitle, txtDealId, txtBusinessContent, txtArea, txtRevenue, txtOperatingProfit, txtEBITDA, txtNetAssets, txtTotalAssets, txtNetCashDebt, txtCashEquivalents, txtInterestBearingDebt, txtEmployeeCount, txtFeatures, txtAskingPrice, txtTransferType, txtTransferReason, txtTransferConditions, txtStatus;
+        private TextBox txtInputDate,  txtBrokerCompany, txtTitle, txtDealId, txtBusinessContent, txtArea, txtRevenue, txtOperatingProfit, txtEBITDA, txtNetAssets, txtTotalAssets, txtNetCashDebt, txtCashEquivalents, txtInterestBearingDebt, txtEmployeeCount, txtFeatures, txtAskingPrice, txtTransferType, txtTransferReason, txtTransferConditions;
+        private ComboBox cmbRoute,cmbStatus;
+
+
 
         private TableLayoutPanel tblProfile;
         private TextBox txtCpCompanyName, txtCpCompanyNameSub, txtCpHeadOffice, txtCpFactory, txtCpOtherOffice, txtCpFounded, txtCpFounded2, txtCpCapital, txtCpRepName, txtCpRepProfile, txtCpShareholder, txtCpBusiness, txtCpRevenue, txtCpEmployees, txtCpClients, txtCpSuppliers, txtCpCertifications, txtCpGroupCompanies, txtCpTransferReason, txtCpRemarks;
@@ -236,6 +239,47 @@ namespace MAItems
                 else this.tblLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, rowHeights[i]));
 
                 var lbl = new Label { Text = rowDefs[i, 0], Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleRight, Font = new Font("Yu Gothic UI", 9F), Padding = new Padding(0, 0, 8, 0) };
+
+                string fieldName = rowDefs[i, 1]; // "Route" などの項目名を取得
+
+                // 💡 分岐処理：経路(Route)の場合
+                if (fieldName == "Route")
+                {
+                    cmbRoute = new ComboBox();
+                    cmbRoute.DropDownStyle = ComboBoxStyle.DropDownList;
+                    cmbRoute.Dock = DockStyle.Fill;
+                    cmbRoute.Font = new Font("Yu Gothic UI", 9F);
+                    cmbRoute.Margin = new Padding(0, 2, 4, 2);
+                    cmbRoute.Items.Clear();
+                    cmbRoute.Items.AddRange(new string[] { "メール", "直接" });
+
+                    this.tblLayout.Controls.Add(lbl, 0, i);
+                    this.tblLayout.Controls.Add(cmbRoute, 1, i);
+                    continue; // テキストボックスを作る処理をスキップして次の項目へ
+                }
+
+                // 💡 分岐処理：ステータス(Status)の場合
+                if (fieldName == "Status")
+                {
+                    cmbStatus = new ComboBox();
+                    cmbStatus.DropDownStyle = ComboBoxStyle.DropDownList;
+                    cmbStatus.Dock = DockStyle.Fill;
+                    cmbStatus.Font = new Font("Yu Gothic UI", 9F);
+                    cmbStatus.Margin = new Padding(0, 2, 4, 2);
+                    cmbStatus.Items.Clear();
+                    cmbStatus.Items.AddRange(new string[] {
+                        "01_初期検討 (ノンネーム)", "02_ネームクリア・NDA締結", "03_IM受領・詳細検討",
+                        "04_トップ面談", "05_意向表明(LOI)提出", "06_基本合意(MOU)締結",
+                        "07_買収監査(DD)実施", "08_最終譲渡契約(DA)締結", "09_クロージング完了",
+                        "98_保留・ペンディング", "99_見送り・断念"
+                    });
+
+                    this.tblLayout.Controls.Add(lbl, 0, i);
+                    this.tblLayout.Controls.Add(cmbStatus, 1, i);
+                    continue; // テキストボックスを作る処理をスキップして次の項目へ
+                }
+
+                // ── ここから下は通常のテキストボックス作成処理（元のコードと同じ） ──
                 var txt = new TextBox { Dock = DockStyle.Fill, Multiline = multiLine, ScrollBars = ScrollBars.None, Font = new Font("Yu Gothic UI", 9F), Margin = new Padding(0, 2, 4, 2) };
 
                 if (multiLine)
@@ -252,7 +296,7 @@ namespace MAItems
                     txt.SizeChanged += (s, e) => adjustHeight();
                 }
 
-                SetTextField(rowDefs[i, 1], txt);
+                SetTextField(fieldName, txt);
                 this.tblLayout.Controls.Add(lbl, 0, i);
                 this.tblLayout.Controls.Add(txt, 1, i);
             }
@@ -331,6 +375,9 @@ namespace MAItems
             this.dgvFinancial.Location = new Point(4, 28);
             this.dgvFinancial.Size = new Size(960, 545);
             this.dgvFinancial.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+
+            this.dgvFinancial.ColumnHeaderMouseDoubleClick += DgvFinancial_ColumnHeaderMouseDoubleClick;
+            SetupFinancialGridContextMenu();
 
             this.tabPage3.Controls.Add(lblNote);
             this.tabPage3.Controls.Add(this.btnPasteFinancial);
@@ -444,7 +491,6 @@ namespace MAItems
             switch (fieldName)
             {
                 case "InputDate": txtInputDate = txt; break;
-                case "Route": txtRoute = txt; break;
                 case "BrokerCompany": txtBrokerCompany = txt; break;
                 case "Title": txtTitle = txt; break;
                 case "DealId": txtDealId = txt; break;
@@ -464,7 +510,6 @@ namespace MAItems
                 case "TransferType": txtTransferType = txt; break;
                 case "TransferReason": txtTransferReason = txt; break;
                 case "TransferConditions": txtTransferConditions = txt; break;
-                case "Status": txtStatus = txt; break;
             }
         }
 

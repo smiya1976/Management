@@ -33,8 +33,8 @@ namespace MAItems
 
             if (folderDlg.ShowDialog() != DialogResult.OK) return;
 
-            string? fromDate = chkUseDate.Checked ? dtpFrom.Value.ToString("yyyy-MM-dd") : null;
-            string? toDate = chkUseDate.Checked ? dtpTo.Value.ToString("yyyy-MM-dd") : null;
+            string? fromDate = chkUseDate.Checked ? dtpFrom.Value.ToString("yyyy/MM/dd") : null;
+            string? toDate = chkUseDate.Checked ? dtpTo.Value.ToString("yyyy/MM/dd") : null;
             string keyword = txtKeyword.Text.Trim();
 
             try

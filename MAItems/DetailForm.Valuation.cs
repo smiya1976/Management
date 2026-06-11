@@ -494,6 +494,13 @@ namespace MAItems
 
             dgv.Columns["Remarks"]!.FillWeight = 50;  // 備考欄を一番広くする（残りスペースを独占）
 
+
+            // すべての列の自動ソートを禁止する
+            foreach (DataGridViewColumn col in dgv.Columns)
+            {
+                col.SortMode = DataGridViewColumnSortMode.NotSortable;
+            }
+
             parent.Controls.Add(dgv);
             y += 150;
         }
@@ -537,6 +544,12 @@ namespace MAItems
                 dgvDcf.Columns["Revenue"]!.DefaultCellStyle.Format = "N0";
                 dgvDcf.Columns["OpProfit"]!.DefaultCellStyle.Format = "N0";
                 dgvDcf.Columns["NOPLAT"]!.DefaultCellStyle.Format = "N0";
+
+                //すべての列の自動ソートを禁止する
+                foreach (DataGridViewColumn col in dgvDcf.Columns)
+                {
+                    col.SortMode = DataGridViewColumnSortMode.NotSortable;
+                }
 
                 parent.Controls.Add(dgvDcf);
                 y += 220;

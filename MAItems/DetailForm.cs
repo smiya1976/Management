@@ -21,6 +21,7 @@ namespace MAItems
         // 各タブで管理する拡張データ
         private CompanyProfile _profile = new();
         private List<FinancialHighlight> _highlights = new();
+        private ContextMenuStrip ctxMenuFinancial = new ContextMenuStrip();
         private ValuationData _valuation = new();
         private List<Attachment> _attachments = new();
 
@@ -79,7 +80,7 @@ namespace MAItems
         /// </summary>
         private void UpdateNavigationButtons()
         {
-            var allDeals = _dealRepo.GetAllDeals();
+            var allDeals = _dealRepo.GetAllDeals().OrderBy(d => d.Id).ToList();
             int idx = allDeals.FindIndex(d => d.Id == _deal.Id);
 
             btnPrev.Enabled = (idx > 0);
@@ -110,7 +111,8 @@ namespace MAItems
                 return;
             }
 
-            var allDeals = _dealRepo.GetAllDeals();
+            // 💡 修正: 取得時に必ずID順（登録順）に並び替えてからリスト化する
+            var allDeals = _dealRepo.GetAllDeals().OrderBy(d => d.Id).ToList();
             int idx = allDeals.FindIndex(d => d.Id == _deal.Id);
             if (idx == -1) return;
 
@@ -217,7 +219,7 @@ namespace MAItems
             this.Text = $"案件詳細  ［ID: {_deal.Id}］";
 
             txtInputDate.Text = _deal.InputDate;
-            txtRoute.Text = _deal.Route;
+            cmbRoute.Text = _deal.Route;
             txtBrokerCompany.Text = _deal.BrokerCompany;
             txtTitle.Text = _deal.Title;
             txtDealId.Text = _deal.DealId;
@@ -237,7 +239,7 @@ namespace MAItems
             txtTransferType.Text = _deal.TransferType;
             txtTransferReason.Text = _deal.TransferReason;
             txtTransferConditions.Text = _deal.TransferConditions;
-            txtStatus.Text = _deal.Status;
+            cmbStatus.Text = _deal.Status;
         }
 
         /// <summary>
@@ -246,7 +248,7 @@ namespace MAItems
         private void FormToDeal()
         {
             _deal.InputDate = txtInputDate.Text.Trim();
-            _deal.Route = txtRoute.Text.Trim();
+            _deal.Route = cmbRoute.Text.Trim();
             _deal.BrokerCompany = txtBrokerCompany.Text.Trim();
             _deal.Title = txtTitle.Text.Trim();
             _deal.DealId = txtDealId.Text.Trim();
@@ -266,7 +268,7 @@ namespace MAItems
             _deal.TransferType = txtTransferType.Text.Trim();
             _deal.TransferReason = txtTransferReason.Text.Trim();
             _deal.TransferConditions = txtTransferConditions.Text.Trim();
-            _deal.Status = txtStatus.Text.Trim();
+            _deal.Status = cmbStatus.Text.Trim();
         }
 
         #endregion
@@ -410,43 +412,54 @@ namespace MAItems
                         row.ReadOnly = true;
                     }
                 }
+
+            // すべての列の自動ソートを禁止する
+            foreach (DataGridViewColumn col in dgvFinancial.Columns)
+            {
+                col.SortMode = DataGridViewColumnSortMode.NotSortable;
+            }
+
         }
 
         private void LoadTab3()
         {
             _highlights = _financialRepo.GetFinancialHighlights(_deal.Id);
-
             string[] colNames = { "col_actual_1", "col_actual_2", "col_actual_3", "col_forecast_1", "col_forecast_2", "col_forecast_3" };
-            string[] periodTypes = { "actual", "actual", "actual", "forecast", "forecast", "forecast" };
-            int[] periodOrders = { 1, 2, 3, 1, 2, 3 };
 
-            // カラムヘッダー（期ラベル）の復元
+            // 1. 実績（古い順）→ 予測（古い順）の並びにソート
+            var sortedHighlights = _highlights
+                .OrderByDescending(h => h.PeriodType == "actual") // actualを先に
+                .ThenBy(h => h.PeriodOrder)
+                .ToList();
+
+            // 2. 左から順番に列を埋めていく
             for (int c = 0; c < 6; c++)
             {
-                var hl = _highlights.Find(h => h.PeriodType == periodTypes[c] && h.PeriodOrder == periodOrders[c]);
-                if (hl != null && !string.IsNullOrEmpty(hl.PeriodLabel))
+                var targetColumn = dgvFinancial.Columns[colNames[c]];
+                if (targetColumn == null) continue;
+
+                if (c < sortedHighlights.Count)
                 {
-                    var targetColumn = dgvFinancial.Columns[colNames[c]];
-                    if (targetColumn != null)
+                    var hl = sortedHighlights[c];
+                    targetColumn.HeaderText = hl.PeriodLabel;
+
+                    foreach (DataGridViewRow row in dgvFinancial.Rows)
                     {
-                        targetColumn.HeaderText = hl.PeriodLabel;
+                        string field = row.Tag as string ?? string.Empty;
+                        if (string.IsNullOrEmpty(field)) continue;
+
+                        double? val = GetHighlightField(hl, field);
+                        row.Cells[colNames[c]].Value = val.HasValue ? (object)val.Value : DBNull.Value;
                     }
                 }
-            }
-
-            // 各セルのデータ復元
-            foreach (DataGridViewRow row in dgvFinancial.Rows)
-            {
-                string field = row.Tag as string ?? string.Empty;
-                if (string.IsNullOrEmpty(field)) continue;
-
-                for (int c = 0; c < 6; c++)
+                else
                 {
-                    var hl = _highlights.Find(h => h.PeriodType == periodTypes[c] && h.PeriodOrder == periodOrders[c]);
-                    if (hl == null) continue;
-
-                    double? val = GetHighlightField(hl, field);
-                    row.Cells[colNames[c]].Value = val.HasValue ? (object)val.Value : DBNull.Value;
+                    // データがない余った列はクリアする
+                    targetColumn.HeaderText = $"列 {c + 1}";
+                    foreach (DataGridViewRow row in dgvFinancial.Rows)
+                    {
+                        row.Cells[colNames[c]].Value = DBNull.Value;
+                    }
                 }
             }
         }
@@ -454,19 +467,41 @@ namespace MAItems
         private List<FinancialHighlight> GridToHighlights()
         {
             string[] colNames = { "col_actual_1", "col_actual_2", "col_actual_3", "col_forecast_1", "col_forecast_2", "col_forecast_3" };
-            string[] periodTypes = { "actual", "actual", "actual", "forecast", "forecast", "forecast" };
-            int[] periodOrders = { 1, 2, 3, 1, 2, 3 };
-
             var result = new List<FinancialHighlight>();
+
+            int actualOrder = 1;   // 実績のカウント用
+            int forecastOrder = 1; // 予測のカウント用
 
             for (int c = 0; c < 6; c++)
             {
+                string headerText = dgvFinancial.Columns[colNames[c]]?.HeaderText ?? string.Empty;
+                if (string.IsNullOrWhiteSpace(headerText) || headerText.StartsWith("col_")) continue;
+
+                // 💡 宮崎様のアイデア：ヘッダーの文字から実績・予測を動的に判定
+                string pType = "actual"; // デフォルト
+                if (headerText.Contains("予測") || headerText.Contains("計画") || headerText.Contains("見込"))
+                {
+                    pType = "forecast";
+                }
+                else if (headerText.Contains("実績"))
+                {
+                    pType = "actual";
+                }
+                else
+                {
+                    // 記載がない場合の安全なフォールバック（最初の3列は実績、残りは予測とみなす）
+                    pType = (c < 3) ? "actual" : "forecast";
+                }
+
+                // 実績なら実績の順番を、予測なら予測の順番を割り当てる
+                int pOrder = (pType == "actual") ? actualOrder++ : forecastOrder++;
+
                 var hl = new FinancialHighlight
                 {
                     DealId = _deal.Id,
-                    PeriodType = periodTypes[c],
-                    PeriodOrder = periodOrders[c],
-                    PeriodLabel = dgvFinancial.Columns[colNames[c]]?.HeaderText ?? string.Empty
+                    PeriodType = pType,
+                    PeriodOrder = pOrder,
+                    PeriodLabel = headerText
                 };
 
                 foreach (DataGridViewRow row in dgvFinancial.Rows)
@@ -781,7 +816,7 @@ namespace MAItems
         private void ApplyParsedDeal(ParsedDeal parsed)
         {
             if (parsed.InputDate != null) txtInputDate.Text = parsed.InputDate;
-            if (parsed.Route != null) txtRoute.Text = parsed.Route;
+            if (parsed.Route != null) cmbRoute.Text = parsed.Route;
             if (parsed.BrokerCompany != null) txtBrokerCompany.Text = parsed.BrokerCompany;
             if (parsed.Title != null) txtTitle.Text = parsed.Title;
             if (parsed.DealId != null) txtDealId.Text = parsed.DealId;
@@ -801,7 +836,7 @@ namespace MAItems
             if (parsed.TransferType != null) txtTransferType.Text = parsed.TransferType;
             if (parsed.TransferReason != null) txtTransferReason.Text = parsed.TransferReason;
             if (parsed.TransferConditions != null) txtTransferConditions.Text = parsed.TransferConditions;
-            if (parsed.Status != null) txtStatus.Text = parsed.Status;
+            if (parsed.Status != null) cmbStatus.Text = parsed.Status;
         }
 
         #endregion
@@ -836,14 +871,23 @@ namespace MAItems
             if (dialogResult == DialogResult.No)
             {
                 string prompt =
-                    "添付の表画像からデータを読み取り、そのままExcelやアプリに貼り付けられるよう「タブ区切りテキスト（TSV）」で出力してください。\n\n" +
-                    "＜出力ルール＞\n" +
-                    "1. 1行目はヘッダーとし、「項目名」と各期のラベル（例：24/3期、実績1期など）を出力してください。\n" +
-                    "2. 2行目以降に、各項目の数値を出力してください。\n" +
-                    "3. 表内の階層（字下げ）は無視し、項目名は左詰めで出力してください。\n" +
-                    "4. 数値の桁区切りカンマ（,）は除外し、マイナス表記は半角の「-」に統一してください。\n" +
-                    "5. 【重要】金額の単位は必ず「百万円単位」で出力してください（元画像が「円」や「千円」単位の場合は、百万円単位に換算して出力すること。比率(%)の項目はそのままの数値で構いません）。\n" +
-                    "6. 簡単にコピーできるよう、出力は必ず1つのコードブロック（```text 〜 ```）にまとめてください。";
+                                    "添付の表画像から財務データを読み取り、システム取り込み用の「タブ区切りテキスト（TSV）」で出力してください。\n\n" +
+                                    "【重要：項目名の統一ルール（名寄せ）】\n" +
+                                    "元の画像の表記にかかわらず、出力する項目名は必ず以下の「指定キーワード」のいずれかに変換（マッピング）して出力してください。\n" +
+                                    "（※該当しない細かな科目は、最も意味が近い「その他〜」に合算して集約してください。指定キーワード以外の項目名は出力しないでください。）\n\n" +
+                                    "＜PL項目＞\n" +
+                                    "売上高, 原価率, 粗利益, 粗利率, 販管費, 営業利益, 営業利益率, 経常利益, 当期純利益, EBITDA, 減価償却費, 設備投資額\n\n" +
+                                    "＜資産項目＞\n" +
+                                    "流動資産, 現金預金, 売掛金, 棚卸資産, その他流動資産, 固定資産, 総資産\n\n" +
+                                    "＜負債・純資産項目＞\n" +
+                                    "流動負債, 買掛金, 短期借入金, その他流動負債, 固定負債, 長期借入金, その他固定負債, 負債合計, 純資産合計, 利益剰余金\n\n" +
+                                    "【出力形式ルール】\n" +
+                                    "1. 1行目はヘッダーとし、「項目名」と各期のラベルを出力してください。\n" +
+                                    "   ➔【重要】各期のラベルの末尾には、実績データであれば「(実績)」、予測・計画データであれば「(予測)」と必ず付記してください。（例：24/3期(実績)、25/3期(予測) など）\n" +
+                                    "2. 2行目以降に数値を出力（インデント用の空白は不要。すべて左詰めで出力）。\n" +
+                                    "3. カンマは除外、マイナス表記は半角「-」。\n" +
+                                    "4. 金額は必ず「百万円単位」に換算（比率(%)はそのまま）。\n" +
+                                    "5. 出力は必ず1つのコードブロック（```text 〜 ```）にまとめる。";
 
                 Clipboard.SetText(prompt);
                 MessageBox.Show(
@@ -902,6 +946,159 @@ namespace MAItems
 
             SetStatus($"✔ 表データを取り込みました（{updateCount} セル更新）", isError: false);
         }
+        // ══════════════════════════════════════════════════════
+        // 財務データの列ヘッダー（期ラベル）を手動で編集する機能
+        // ══════════════════════════════════════════════════════
+        private void DgvFinancial_ColumnHeaderMouseDoubleClick(object? sender, DataGridViewCellMouseEventArgs e)
+        {
+            // 一番左の「項目」列（インデックス0）は変更させない
+            if (e.ColumnIndex == 0) return;
+
+            // 現在のヘッダー名を取得
+            string currentHeader = dgvFinancial.Columns[e.ColumnIndex].HeaderText;
+
+            // 入力用ダイアログを表示
+            string? newHeader = PromptForInput("期ラベルの編集", "新しい期ラベルを入力してください:", currentHeader);
+
+            // 空白キャンセルでなければ更新
+            if (!string.IsNullOrWhiteSpace(newHeader))
+            {
+                dgvFinancial.Columns[e.ColumnIndex].HeaderText = newHeader;
+            }
+        }
+
+        // C#で簡易的な入力ダイアログ（InputBox）を作るためのヘルパーメソッド
+        private string? PromptForInput(string title, string prompt, string defaultValue)
+        {
+            using Form inputForm = new Form
+            {
+                Width = 320,
+                Height = 150,
+                FormBorderStyle = FormBorderStyle.FixedDialog,
+                Text = title,
+                StartPosition = FormStartPosition.CenterParent,
+                MaximizeBox = false,
+                MinimizeBox = false,
+                BackColor = Color.White
+            };
+
+            Label lbl = new Label { Left = 15, Top = 15, Text = prompt, Width = 280, Font = new Font("Yu Gothic UI", 9F) };
+            TextBox txt = new TextBox { Left = 15, Top = 40, Width = 270, Text = defaultValue, Font = new Font("Yu Gothic UI", 9F) };
+            Button btnOk = new Button { Text = "OK", Left = 115, Width = 80, Top = 75, DialogResult = DialogResult.OK, BackColor = Color.LightSteelBlue };
+            Button btnCancel = new Button { Text = "キャンセル", Left = 205, Width = 80, Top = 75, DialogResult = DialogResult.Cancel };
+
+            inputForm.Controls.AddRange(new Control[] { lbl, txt, btnOk, btnCancel });
+            inputForm.AcceptButton = btnOk;     // EnterキーでOK
+            inputForm.CancelButton = btnCancel; // Escキーでキャンセル
+
+            return inputForm.ShowDialog() == DialogResult.OK ? txt.Text : null;
+        }
+        // ══════════════════════════════════════════════════════
+        // 財務データの右クリックメニュー（列・行のクリア機能）
+        // ══════════════════════════════════════════════════════
+        private void SetupFinancialGridContextMenu()
+        {
+            ctxMenuFinancial = new ContextMenuStrip();
+            ctxMenuFinancial.Font = new Font("Yu Gothic UI", 9F);
+
+            var menuClearCol = new ToolStripMenuItem("🗑 この列の数値をクリア");
+            menuClearCol.Click += (s, e) => ClearSelectedFinancialColumn();
+
+            var menuClearRow = new ToolStripMenuItem("🗑 この行の数値をクリア");
+            menuClearRow.Click += (s, e) => ClearSelectedFinancialRow();
+
+            var menuClearAll = new ToolStripMenuItem("⚠️ すべての数値を一括クリア");
+            menuClearAll.ForeColor = Color.DarkRed;
+            menuClearAll.Click += (s, e) => ClearAllFinancialData();
+
+            ctxMenuFinancial.Items.AddRange(new ToolStripItem[] { menuClearCol, menuClearRow, new ToolStripSeparator(), menuClearAll });
+
+            // 右クリックで選択対象を切り替えてからメニューを出すためのイベント
+            dgvFinancial.CellMouseDown += DgvFinancial_CellMouseDown;
+        }
+
+        private void DgvFinancial_CellMouseDown(object? sender, DataGridViewCellMouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Right)
+            {
+                // ヘッダー以外の有効なセルをクリックした場合
+                if (e.RowIndex >= 0 && e.ColumnIndex >= 0)
+                {
+                    dgvFinancial.ClearSelection();
+                    dgvFinancial.Rows[e.RowIndex].Cells[e.ColumnIndex].Selected = true;
+                    dgvFinancial.CurrentCell = dgvFinancial.Rows[e.RowIndex].Cells[e.ColumnIndex];
+                    ctxMenuFinancial.Show(Cursor.Position);
+                }
+                // 列ヘッダーをクリックした場合
+                else if (e.RowIndex == -1 && e.ColumnIndex > 0)
+                {
+                    dgvFinancial.ClearSelection();
+                    dgvFinancial.Columns[e.ColumnIndex].Selected = true;
+                    ctxMenuFinancial.Show(Cursor.Position);
+                }
+            }
+        }
+
+        private void ClearSelectedFinancialColumn()
+        {
+            if (dgvFinancial.CurrentCell == null && dgvFinancial.SelectedColumns.Count == 0) return;
+
+            // 選択されている列のインデックスを取得
+            int colIndex = dgvFinancial.SelectedColumns.Count > 0
+                ? dgvFinancial.SelectedColumns[0].Index
+                : dgvFinancial.CurrentCell!.ColumnIndex;
+
+            // 1列目（項目名）はクリア不可
+            if (colIndex == 0) return;
+
+            string headerName = dgvFinancial.Columns[colIndex].HeaderText;
+            if (MessageBox.Show($"「{headerName}」の列の数値をすべてクリアしますか？", "列クリアの確認", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+            {
+                foreach (DataGridViewRow row in dgvFinancial.Rows)
+                {
+                    // 見出し行（ReadOnlyになっている行）はスキップ
+                    if (!row.ReadOnly)
+                    {
+                        row.Cells[colIndex].Value = DBNull.Value;
+                    }
+                }
+            }
+        }
+
+        private void ClearSelectedFinancialRow()
+        {
+            if (dgvFinancial.CurrentCell == null) return;
+            int rowIndex = dgvFinancial.CurrentCell.RowIndex;
+
+            // 見出し行なら処理しない
+            if (dgvFinancial.Rows[rowIndex].ReadOnly) return;
+
+            string itemName = dgvFinancial.Rows[rowIndex].Cells[0].Value?.ToString() ?? "選択行";
+            if (MessageBox.Show($"「{itemName}」の行の数値をすべてクリアしますか？", "行クリアの確認", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+            {
+                // 1列目(インデックス0)の項目名は残し、1〜6列目の数値をクリア
+                for (int c = 1; c < dgvFinancial.Columns.Count; c++)
+                {
+                    dgvFinancial.Rows[rowIndex].Cells[c].Value = DBNull.Value;
+                }
+            }
+        }
+
+        private void ClearAllFinancialData()
+        {
+            if (MessageBox.Show("表内のすべての数値をクリアしますか？\n（項目名や期ラベルは保持されます）", "全クリアの確認", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
+            {
+                foreach (DataGridViewRow row in dgvFinancial.Rows)
+                {
+                    if (row.ReadOnly) continue;
+                    for (int c = 1; c < dgvFinancial.Columns.Count; c++)
+                    {
+                        row.Cells[c].Value = DBNull.Value;
+                    }
+                }
+            }
+        }
+
         #endregion
 
 

@@ -480,10 +480,22 @@ namespace MAItems
                 return;
             }
 
-            var detailForm = new DetailForm(deal, _context);
-            detailForm.SaveCompleted += (s, ev)
-                => LoadData(txtSearch.Text.Trim());
-            detailForm.ShowDialog(this);
+            // 💡 ① 詳細画面を開く前にメイン画面を非表示にする
+            this.Hide();
+
+            // フォームを生成（using で囲むことで、閉じられた後に安全にメモリから解放されます）
+            using (var detailForm = new DetailForm(deal, _context))
+            {
+                // 保存完了時のイベント登録（元のコードのまま）
+                detailForm.SaveCompleted += (s, ev)
+                    => LoadData(txtSearch.Text.Trim());
+
+                // ダイアログとして開く
+                detailForm.ShowDialog(this);
+            }
+
+            // 💡 ② 詳細画面が閉じられたらメイン画面を再表示する
+            this.Show();
         }
 
         private void btnAdd_Click(object sender, EventArgs e)
@@ -521,9 +533,19 @@ namespace MAItems
         // ── 追加: データ管理画面の呼び出しイベント ──
         private void btnDataSync_Click(object sender, EventArgs e)
         {
+            // 開く前にメイン画面を非表示にする
+            this.Hide();
             // コンテキストをDataSyncFormに渡す
             using var syncForm = new DataSyncForm(_context);
-            if (syncForm.ShowDialog(this) == DialogResult.OK)
+
+            //ダイアログを開き、結果を一旦変数(result)で受け取る
+            DialogResult result = syncForm.ShowDialog(this);
+
+            //画面が閉じられたら（結果がどうであれ）まずはメイン画面を再表示する
+            this.Show();
+
+            //その後で、OKが返ってきていればグリッドのデータを更新する
+            if (result == DialogResult.OK)
             {
                 if (_isNumericMode) LoadDataNumeric(txtSearch.Text.Trim());
                 else LoadData(txtSearch.Text.Trim());
