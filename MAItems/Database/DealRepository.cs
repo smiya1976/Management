@@ -79,6 +79,25 @@ namespace MAItems.Database
             }
             UpsertNumeric(newId);
         }
+        /// <summary>
+        /// CSVインポート等で、過去の内部IDを維持したまま強制的に新規登録を行うメソッド
+        /// </summary>
+        public void AddDealWithExplicitId(Deal d)
+        {
+            d.LastUpdatedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+            using (var conn = _context.GetConnection())
+            {
+                // 💡 INSERT文の中に明示的に「Id」を含める
+                string sql = @"INSERT INTO Deals (Id, InputDate, Route, BrokerCompany, Title, DealId, BusinessContent, Area, Revenue, OperatingProfit, EBITDA, NetAssets, TotalAssets, NetCashDebt, CashEquivalents, InterestBearingDebt, EmployeeCount, Features, AskingPrice, TransferType, TransferReason, TransferConditions, Status, AttachmentsSummary, IsProcessing, LastUpdatedAt) VALUES (@Id, @InputDate, @Route, @BrokerCompany, @Title, @DealId, @BusinessContent, @Area, @Revenue, @OperatingProfit, @EBITDA, @NetAssets, @TotalAssets, @NetCashDebt, @CashEquivalents, @InterestBearingDebt, @EmployeeCount, @Features, @AskingPrice, @TransferType, @TransferReason, @TransferConditions, @Status, @AttachmentsSummary, @IsProcessing, @LastUpdatedAt);";
+                using var cmd = new SqliteCommand(sql, conn);
+
+                cmd.Parameters.AddWithValue("@Id", d.Id);
+                BindParameters(cmd, d); // 既存の共通バインド処理を使い回す
+
+                cmd.ExecuteNonQuery();
+            }
+            UpsertNumeric(d.Id);
+        }
 
         public long AddEmptyDeal()
         {
@@ -86,11 +105,12 @@ namespace MAItems.Database
             string now = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
             using (var conn = _context.GetConnection())
             {
-                string sql = @"INSERT INTO Deals (InputDate, Route, BrokerCompany, Title, DealId, BusinessContent, Area, Revenue, OperatingProfit, EBITDA, NetAssets, TotalAssets, NetCashDebt, CashEquivalents, InterestBearingDebt, EmployeeCount, Features, AskingPrice, TransferType, TransferReason, TransferConditions, Status, AttachmentsSummary, IsProcessing, LastUpdatedAt) VALUES (@InputDate, '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 0, @LastUpdatedAt); SELECT last_insert_rowid();";
+                string sql = @"INSERT INTO Deals (InputDate, Route, BrokerCompany, Title, DealId, BusinessContent, Area, Revenue, OperatingProfit, EBITDA, NetAssets, TotalAssets, NetCashDebt, CashEquivalents, InterestBearingDebt, EmployeeCount, Features, AskingPrice, TransferType, TransferReason, TransferConditions, Status, AttachmentsSummary, IsProcessing, LastUpdatedAt) VALUES (@InputDate, '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', @Status, '', 0, @LastUpdatedAt); SELECT last_insert_rowid();";
                 using var cmd = new SqliteCommand(sql, conn);
 
                 cmd.Parameters.AddWithValue("@InputDate", DateTime.Now.ToString("yyyy/MM/d"));
                 cmd.Parameters.AddWithValue("@LastUpdatedAt", now);
+                cmd.Parameters.AddWithValue("@Status", "00_情報受領");
                 newId = (long)cmd.ExecuteScalar()!;
             }
             UpsertNumeric(newId);

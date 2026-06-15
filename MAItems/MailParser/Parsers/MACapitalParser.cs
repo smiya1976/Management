@@ -12,8 +12,16 @@ namespace MAItems.MailParser.Parsers
         private const string Identifier = "M&Aキャピタルパートナーズ";
 
         public override bool CanParse(string mailBody)
-            => mailBody.Contains(Identifier,
-                System.StringComparison.OrdinalIgnoreCase);
+        {
+            // M&Aキャピタルのメールであるかを判定
+            bool isMACapital = mailBody.Contains(Identifier, System.StringComparison.OrdinalIgnoreCase);
+
+            // 複数案件（メルマガ）特有のキーワードが含まれているか判定
+            bool isMultiDealMail = mailBody.Contains("M&A案件情報のお知らせ") || mailBody.Contains("新着案件情報");
+
+            // M&Aキャピタルのメールであり、かつ「複数案件メールではない」場合のみ true を返す
+            return isMACapital && !isMultiDealMail;
+        }
 
         public override List<ParsedDeal> Parse(string mailBody)
         {

@@ -44,7 +44,7 @@ namespace MAItems
 
             // --- 1. 案件一覧 ---
             var sbDeals = new StringBuilder();
-            sbDeals.AppendLine("入力日,経路,仲介会社,タイトル,案件ID,事業内容,エリア,売上高,営業利益,EBITDA,純資産額,総資産額,NET Cash/Debt,現金・現金同等物,有利子負債等,従業員数,特徴,譲渡希望額,譲渡希望形態,譲渡希望理由,希望譲渡条件,処理,全体概況");
+            sbDeals.AppendLine("案件内部ID(Id),入力日,経路,仲介会社,タイトル,案件ID,事業内容,エリア,売上高,営業利益,EBITDA,純資産額,総資産額,NET Cash/Debt,現金・現金同等物,有利子負債等,従業員数,特徴,譲渡希望額,譲渡希望形態,譲渡希望理由,希望譲渡条件,処理,全体概況");
 
             var profiles = new List<CompanyProfile>();
             var financials = new List<FinancialHighlight>();
@@ -53,7 +53,7 @@ namespace MAItems
 
             foreach (var d in deals)
             {
-                sbDeals.AppendLine($"{Esc(d.InputDate)},{Esc(d.Route)},{Esc(d.BrokerCompany)},{Esc(d.Title)},{Esc(d.DealId)},{Esc(d.BusinessContent)},{Esc(d.Area)},{Esc(d.Revenue)},{Esc(d.OperatingProfit)},{Esc(d.EBITDA)},{Esc(d.NetAssets)},{Esc(d.TotalAssets)},{Esc(d.NetCashDebt)},{Esc(d.CashEquivalents)},{Esc(d.InterestBearingDebt)},{Esc(d.EmployeeCount)},{Esc(d.Features)},{Esc(d.AskingPrice)},{Esc(d.TransferType)},{Esc(d.TransferReason)},{Esc(d.TransferConditions)},{Esc(d.Status)},{Esc(d.AttachmentsSummary)}");
+                sbDeals.AppendLine($"{d.Id},{Esc(d.InputDate)},{Esc(d.Route)},{Esc(d.BrokerCompany)},{Esc(d.Title)},{Esc(d.DealId)},{Esc(d.BusinessContent)},{Esc(d.Area)},{Esc(d.Revenue)},{Esc(d.OperatingProfit)},{Esc(d.EBITDA)},{Esc(d.NetAssets)},{Esc(d.TotalAssets)},{Esc(d.NetCashDebt)},{Esc(d.CashEquivalents)},{Esc(d.InterestBearingDebt)},{Esc(d.EmployeeCount)},{Esc(d.Features)},{Esc(d.AskingPrice)},{Esc(d.TransferType)},{Esc(d.TransferReason)},{Esc(d.TransferConditions)},{Esc(d.Status)},{Esc(d.AttachmentsSummary)}");
 
                 // 子データを収集
                 var p = _finRepo.GetCompanyProfile(d.Id);
@@ -115,30 +115,39 @@ namespace MAItems
             int count = 0;
             foreach (var deal in deals)
             {
-                //インポートする日付文字列を解析し、強制的に yyyy/MM/dd に統一
+                // 💡 日付の正規化（前回の修正）
                 if (!string.IsNullOrWhiteSpace(deal.InputDate) && DateTime.TryParse(deal.InputDate, out var parsedDate))
                 {
                     deal.InputDate = parsedDate.ToString("yyyy/MM/dd");
                 }
-                // DealId(手入力の案件ID文字列)をキーにして既存を検索
-                var existing = _dealRepo.SearchDeals(deal.DealId).FirstOrDefault(d => d.DealId == deal.DealId);
+
+                // 💡 修正: 手入力の「DealId」ではなく、システムが振った「Id」で探す（空欄上書きバグを防止）
+                var existing = deal.Id > 0 ? _dealRepo.GetDealById(deal.Id) : null;
 
                 if (existing != null)
                 {
-                    // 既存データがある場合はIDを引き継いで「更新」
+                    // 既存データがある場合は上書き（安全）
                     deal.Id = existing.Id;
-                    _dealRepo.UpdateDeal(deal); // ★エラーが出る場合は既存の更新メソッド名(例: Update等)に変更してください
+                    _dealRepo.UpdateDeal(deal);
                 }
                 else
                 {
-                    // 既存データがない場合は「新規追加」
-                    _dealRepo.AddDeal(deal); // ★エラーが出る場合は既存の追加メソッド名(例: InsertDeal等)に変更してください
+                    // 💡 修正: DB全消去後でも子データとのリンクが切れないように、IDを維持したまま強制追加する
+                    if (deal.Id > 0)
+                    {
+                        _dealRepo.AddDealWithExplicitId(deal);
+                    }
+                    else
+                    {
+                        _dealRepo.AddDeal(deal); // CSVにIDがない完全新規の場合は通常追加
+                    }
                 }
-
                 count++;
             }
             return count;
         }
+
+
 
         public int ImportCompanyProfiles(string filePath)
         {

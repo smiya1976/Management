@@ -747,13 +747,12 @@ namespace MAItems
         /// <summary>
         /// クリップボードのメールテキストから案件情報を抽出し、フォームに自動入力します。
         /// </summary>
- // 💡 追加: メソッドに async を付与
         private async void btnPasteFromMail_Click(object? sender, EventArgs e)
         {
             string mailBody = Clipboard.GetText();
             if (string.IsNullOrWhiteSpace(mailBody)) { SetStatus("⚠ クリップボードにテキストがありません", isError: true); return; }
 
-            // 💡 変更: パーサーの取得・テキスト解析・Webスクレイピングを1行で非同期実行
+            // パーサーの取得・テキスト解析・Webスクレイピングを非同期実行
             List<ParsedDeal> parsedList = await MailParserFactory.ParseAndEnrichAsync(mailBody);
 
             if (parsedList == null || parsedList.Count == 0)
@@ -762,60 +761,80 @@ namespace MAItems
                 return;
             }
 
-            // 1件目は現在の画面（テキストボックス）に適用する（既存のまま）
-            ApplyParsedDeal(parsedList[0]);
+            // 💡 【新規追加】1件目（単一案件含む）の重複チェックと自動切り替え
+            var p0 = parsedList[0];
+            var existing0 = _dealRepo.SearchDeals(p0.DealId ?? "")
+                .FirstOrDefault(d => d.DealId == p0.DealId && d.BrokerCompany == p0.BrokerCompany);
 
-            // 2件目以降が存在する場合は確認ダイアログを出す（既存のまま）
+            // 既に登録されていて、かつ「今開いている画面の案件」とは別物だった場合
+            if (existing0 != null && existing0.Id != _deal.Id)
+            {
+                var res = MessageBox.Show(
+                    $"この案件（案件ID: {p0.DealId}）は既に登録されています。\n\n" +
+                    "既存の案件データを画面に呼び出して、メールの最新内容を反映させますか？\n" +
+                    "（「はい」を押すと、現在編集中の内容は保存して切り替わります）",
+                    "登録済み案件の確認",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Question);
+
+                if (res == DialogResult.Yes)
+                {
+                    // 現在の編集内容を保存してから、既存の案件に画面を切り替える
+                    if (!SaveCurrentData()) return;
+                    _deal = existing0;
+                    LoadAll(); // 既存のデータを画面に展開
+                }
+            }
+
+            // 1件目は現在の画面（テキストボックス）に適用する
+            ApplyParsedDeal(p0);
+
+            // 2件目以降が存在する場合（複数案件のスマート・アップサート）
             if (parsedList.Count > 1)
             {
                 var confirm = MessageBox.Show(
                     $"メールから {parsedList.Count} 件の案件が検出されました。\n\n" +
-                    "1件目を現在の画面に入力し、残りの案件をデータベースに新規追加登録しますか？",
+                    "1件目を現在の画面に入力し、残りの案件をデータベースに自動取り込みしますか？",
                     "複数案件の取り込み", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
 
                 if (confirm == DialogResult.Yes)
                 {
                     int addedCount = 0;
+                    int updatedCount = 0;
+                    int skippedCount = 0;
+
                     for (int i = 1; i < parsedList.Count; i++)
                     {
-                        // 2件目以降を新しいDealモデルに詰め替えてDBへ保存
-                        var newDeal = new Deal();
                         var p = parsedList[i];
+                        var existing = _dealRepo.SearchDeals(p.DealId ?? "")
+                            .FirstOrDefault(d => d.DealId == p.DealId && d.BrokerCompany == p.BrokerCompany);
 
-                        if (!string.IsNullOrWhiteSpace(p.InputDate) && DateTime.TryParse(p.InputDate, out var parsedDate))
+                        if (existing != null)
                         {
-                            newDeal.InputDate = parsedDate.ToString("yyyy/MM/dd");
+                            // 売上、営業利益、EBITDAがすべて一致する場合は「変更なし」とみなしてスキップ
+                            if (existing.Revenue == p.Revenue &&
+                                existing.OperatingProfit == p.OperatingProfit &&
+                                existing.EBITDA == p.EBITDA)
+                            {
+                                skippedCount++;
+                                continue;
+                            }
+
+                            // 一致しない（数値が更新されている）場合は上書き更新(Update)
+                            MapParsedToDeal(p, existing);
+                            _dealRepo.UpdateDeal(existing);
+                            updatedCount++;
                         }
                         else
                         {
-                            newDeal.InputDate = p.InputDate ?? ""; // 解析不能な場合はそのまま
+                            // 初見の案件の場合は新規追加(Insert)
+                            var newDeal = new Deal();
+                            MapParsedToDeal(p, newDeal);
+                            _dealRepo.AddDeal(newDeal);
+                            addedCount++;
                         }
-                        newDeal.Route = p.Route ?? "";
-                        newDeal.BrokerCompany = p.BrokerCompany ?? "";
-                        newDeal.Title = p.Title ?? "";
-                        newDeal.DealId = p.DealId ?? "";
-                        newDeal.BusinessContent = p.BusinessContent ?? "";
-                        newDeal.Area = p.Area ?? "";
-                        newDeal.Revenue = p.Revenue ?? "";
-                        newDeal.OperatingProfit = p.OperatingProfit ?? "";
-                        newDeal.EBITDA = p.EBITDA ?? "";
-                        newDeal.NetAssets = p.NetAssets ?? "";
-                        newDeal.TotalAssets = p.TotalAssets ?? "";
-                        newDeal.NetCashDebt = p.NetCashDebt ?? "";
-                        newDeal.CashEquivalents = p.CashEquivalents ?? "";
-                        newDeal.InterestBearingDebt = p.InterestBearingDebt ?? "";
-                        newDeal.EmployeeCount = p.EmployeeCount ?? "";
-                        newDeal.Features = p.Features ?? "";
-                        newDeal.AskingPrice = p.AskingPrice ?? "";
-                        newDeal.TransferType = p.TransferType ?? "";
-                        newDeal.TransferReason = p.TransferReason ?? "";
-                        newDeal.TransferConditions = p.TransferConditions ?? "";
-                        newDeal.Status = p.Status ?? "";
-
-                        _dealRepo.AddDeal(newDeal);
-                        addedCount++;
                     }
-                    SetStatus($"✔ 1件目を画面に入力し、{addedCount}件の案件をデータベースに新規追加しました", false);
+                    SetStatus($"✔ 1件目を画面に反映。その他: 追加 {addedCount}件 / 更新 {updatedCount}件 / スキップ {skippedCount}件", false);
                 }
                 else
                 {
@@ -824,10 +843,9 @@ namespace MAItems
             }
             else
             {
-                SetStatus($"✔ メール本文を取り込みました（{parsedList[0].BrokerCompany}）", false);
+                SetStatus($"✔ メール本文を取り込みました（{p0.BrokerCompany}）", false);
             }
         }
-
         private void ApplyParsedDeal(ParsedDeal parsed)
         {
             if (parsed.InputDate != null)
@@ -858,6 +876,44 @@ namespace MAItems
             if (parsed.TransferReason != null) txtTransferReason.Text = parsed.TransferReason;
             if (parsed.TransferConditions != null) txtTransferConditions.Text = parsed.TransferConditions;
             if (parsed.Status != null) cmbStatus.Text = parsed.Status;
+        }
+
+        /// <summary>
+        /// メール解析結果をデータベース用のDealモデルに詰め替えます（日付の正規化対応済）
+        /// </summary>
+        private void MapParsedToDeal(ParsedDeal p, Deal deal)
+        {
+            if (!string.IsNullOrWhiteSpace(p.InputDate) && DateTime.TryParse(p.InputDate, out var parsedDate))
+            {
+                deal.InputDate = parsedDate.ToString("yyyy/MM/dd");
+            }
+            else
+            {
+                deal.InputDate = p.InputDate ?? "";
+            }
+
+            deal.Route = p.Route ?? "";
+            deal.BrokerCompany = p.BrokerCompany ?? "";
+            deal.Title = p.Title ?? "";
+            deal.DealId = p.DealId ?? "";
+            deal.BusinessContent = p.BusinessContent ?? "";
+            deal.Area = p.Area ?? "";
+            deal.Revenue = p.Revenue ?? "";
+            deal.OperatingProfit = p.OperatingProfit ?? "";
+            deal.EBITDA = p.EBITDA ?? "";
+            deal.NetAssets = p.NetAssets ?? "";
+            deal.TotalAssets = p.TotalAssets ?? "";
+            deal.NetCashDebt = p.NetCashDebt ?? "";
+            deal.CashEquivalents = p.CashEquivalents ?? "";
+            deal.InterestBearingDebt = p.InterestBearingDebt ?? "";
+            deal.EmployeeCount = p.EmployeeCount ?? "";
+            deal.Features = p.Features ?? "";
+            deal.AskingPrice = p.AskingPrice ?? "";
+            deal.TransferType = p.TransferType ?? "";
+            deal.TransferReason = p.TransferReason ?? "";
+            deal.TransferConditions = p.TransferConditions ?? "";
+            // Statusが空の場合は既存のステータスを維持するか、初期値を入れる
+            if (!string.IsNullOrEmpty(p.Status)) deal.Status = p.Status;
         }
 
         #endregion

@@ -31,6 +31,7 @@ namespace MAItems
                 // 配列のインデックス（番号）ではなく、ヘッダーの項目名でマッピングする
                 var deal = new Deal
                 {
+                    Id = long.TryParse(GetValue(headers, values, "案件内部ID(Id)"), out long id) ? id : 0,
                     InputDate = GetValue(headers, values, "入力日") ?? "",
                     Route = GetValue(headers, values, "経路") ?? "",
                     BrokerCompany = GetValue(headers, values, "仲介会社") ?? "",

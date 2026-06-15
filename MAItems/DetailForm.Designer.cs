@@ -268,7 +268,7 @@ namespace MAItems
                     cmbStatus.Margin = new Padding(0, 2, 4, 2);
                     cmbStatus.Items.Clear();
                     cmbStatus.Items.AddRange(new string[] {
-                        "01_初期検討 (ノンネーム)", "02_ネームクリア・NDA締結", "03_IM受領・詳細検討",
+                        "00_情報受領","01_初期検討 (ノンネーム)", "02_ネームクリア・NDA締結", "03_IM受領・詳細検討",
                         "04_トップ面談", "05_意向表明(LOI)提出", "06_基本合意(MOU)締結",
                         "07_買収監査(DD)実施", "08_最終譲渡契約(DA)締結", "09_クロージング完了",
                         "98_保留・ペンディング", "99_見送り・断念"
