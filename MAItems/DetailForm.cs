@@ -761,10 +761,16 @@ namespace MAItems
                 return;
             }
 
-            // 💡 【新規追加】1件目（単一案件含む）の重複チェックと自動切り替え
+            // 💡 【修正】今回のメールに含まれる「案件IDのリスト」を作成
+            var mailDealIds = parsedList.Select(p => p.DealId ?? "").Where(id => id != "").Distinct().ToList();
+            string broker = parsedList[0].BrokerCompany ?? "";
+
+            // 💡 【修正】対象の仲介会社 ＆ 今回のメールにある案件ID のデータ「だけ」をDBから取得（超高速）
+            var existingDeals = _dealRepo.GetExistingDealsForImport(broker, mailDealIds);
+
+            // 1件目（単一案件含む）の重複チェック
             var p0 = parsedList[0];
-            var existing0 = _dealRepo.SearchDeals(p0.DealId ?? "")
-                .FirstOrDefault(d => d.DealId == p0.DealId && d.BrokerCompany == p0.BrokerCompany);
+            var existing0 = existingDeals.FirstOrDefault(d => d.DealId == p0.DealId);
 
             // 既に登録されていて、かつ「今開いている画面の案件」とは別物だった場合
             if (existing0 != null && existing0.Id != _deal.Id)
@@ -779,7 +785,6 @@ namespace MAItems
 
                 if (res == DialogResult.Yes)
                 {
-                    // 現在の編集内容を保存してから、既存の案件に画面を切り替える
                     if (!SaveCurrentData()) return;
                     _deal = existing0;
                     LoadAll(); // 既存のデータを画面に展開
@@ -806,12 +811,13 @@ namespace MAItems
                     for (int i = 1; i < parsedList.Count; i++)
                     {
                         var p = parsedList[i];
-                        var existing = _dealRepo.SearchDeals(p.DealId ?? "")
-                            .FirstOrDefault(d => d.DealId == p.DealId && d.BrokerCompany == p.BrokerCompany);
+
+                        // DBからピンポイントで引いてきた existingDeals の中から探す
+                        var existing = existingDeals.FirstOrDefault(d => d.DealId == p.DealId);
 
                         if (existing != null)
                         {
-                            // 売上、営業利益、EBITDAがすべて一致する場合は「変更なし」とみなしてスキップ
+                            // 変更なしスキップ判定
                             if (existing.Revenue == p.Revenue &&
                                 existing.OperatingProfit == p.OperatingProfit &&
                                 existing.EBITDA == p.EBITDA)
@@ -820,17 +826,21 @@ namespace MAItems
                                 continue;
                             }
 
-                            // 一致しない（数値が更新されている）場合は上書き更新(Update)
+                            // 上書き更新(Update)
                             MapParsedToDeal(p, existing);
                             _dealRepo.UpdateDeal(existing);
                             updatedCount++;
                         }
                         else
                         {
-                            // 初見の案件の場合は新規追加(Insert)
+                            // 新規追加(Insert)
                             var newDeal = new Deal();
                             MapParsedToDeal(p, newDeal);
                             _dealRepo.AddDeal(newDeal);
+
+                            // 同じメール内に重複があった場合のためにリストに追加
+                            existingDeals.Add(newDeal);
+
                             addedCount++;
                         }
                     }
@@ -846,6 +856,7 @@ namespace MAItems
                 SetStatus($"✔ メール本文を取り込みました（{p0.BrokerCompany}）", false);
             }
         }
+
         private void ApplyParsedDeal(ParsedDeal parsed)
         {
             if (parsed.InputDate != null)

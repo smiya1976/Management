@@ -205,6 +205,37 @@ namespace MAItems.Database
             return list;
         }
 
+        // ── 追加: メール取り込み時の重複チェック用・高速クエリ ──
+        public List<Deal> GetExistingDealsForImport(string brokerCompany, List<string> dealIds)
+        {
+            var list = new List<Deal>();
+            if (dealIds == null || dealIds.Count == 0) return list;
+
+            using var conn = _context.GetConnection();
+            using var cmd = new SqliteCommand();
+            cmd.Connection = conn;
+
+            // IN句を安全に構築するためのパラメータリストを作成
+            var paramNames = new List<string>();
+            for (int i = 0; i < dealIds.Count; i++)
+            {
+                string pName = $"@p{i}";
+                paramNames.Add(pName);
+                cmd.Parameters.AddWithValue(pName, dealIds[i]);
+            }
+
+            // 仲介会社が一致し、かつ対象の案件IDのいずれかに合致するもの「だけ」を取得
+            cmd.CommandText = $"SELECT * FROM Deals WHERE BrokerCompany = @broker AND DealId IN ({string.Join(", ", paramNames)});";
+            cmd.Parameters.AddWithValue("@broker", brokerCompany);
+
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read()) list.Add(MapDeal(reader));
+
+            return list;
+        }
+
+
+
         // --- マッピングとバインド ---
         private static Deal MapDeal(SqliteDataReader r) => new Deal
         {
