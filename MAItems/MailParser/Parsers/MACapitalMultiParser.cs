@@ -12,9 +12,10 @@ namespace MAItems.MailParser.Parsers
 
         public override bool CanParse(string mailBody)
         {
-            // 💡 修正1: 「新着案件情報」という見出しが変わっても対応できるように条件を緩和
+            // 💡 修正: 複数案件のメルマガには必ず「詳細業種：」という項目があるため、これを確実な識別子とする
             return (mailBody.Contains("M&A Capital Partners") || mailBody.Contains("M&A案件情報のお知らせ") || mailBody.Contains("M&Aキャピタルパートナーズ"))
-                && mailBody.Contains("案件番号：");
+                && mailBody.Contains("案件番号：")
+                && mailBody.Contains("詳細業種：");
         }
 
         public override List<ParsedDeal> Parse(string mailBody)

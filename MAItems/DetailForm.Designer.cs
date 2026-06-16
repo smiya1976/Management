@@ -43,7 +43,8 @@ namespace MAItems
         private Button btnNext;
         private Button btnSave;
         private Button btnClose;
-        private Label lblStatus;
+        private StatusStrip statusStripMain;
+        private ToolStripStatusLabel lblStatus;
 
         private void InitializeComponent()
         {
@@ -59,7 +60,6 @@ namespace MAItems
             btnNext = new Button();
             btnSave = new Button();
             btnClose = new Button();
-            lblStatus = new Label();
             tabMain.SuspendLayout();
             pnlHeader.SuspendLayout();
             SuspendLayout();
@@ -184,15 +184,21 @@ namespace MAItems
             // 
             // lblStatus
             // 
-            lblStatus.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
-            lblStatus.Location = new Point(12, 708);
+            statusStripMain = new StatusStrip();
+            lblStatus = new ToolStripStatusLabel();
+            statusStripMain.SuspendLayout();
+            statusStripMain.Items.AddRange(new ToolStripItem[] { lblStatus });
+            statusStripMain.Location = new Point(0, 703);
+            statusStripMain.Name = "statusStripMain";
+            statusStripMain.Size = new Size(980, 22);
+            statusStripMain.TabIndex = 7;
             lblStatus.Name = "lblStatus";
-            lblStatus.Size = new Size(950, 23);
-            lblStatus.TabIndex = 7;
+            lblStatus.Size = new Size(0, 17);
+
             // 
             // DetailForm
             // 
-            ClientSize = new Size(980, 701);
+            ClientSize = new Size(980, 725); // 💡 高さを701から725に広げました
             Controls.Add(pnlHeader);
             Controls.Add(tabMain);
             Controls.Add(btnPasteFromMail);
@@ -200,14 +206,17 @@ namespace MAItems
             Controls.Add(btnNext);
             Controls.Add(btnSave);
             Controls.Add(btnClose);
-            Controls.Add(lblStatus);
+            Controls.Add(statusStripMain);   // 💡 lblStatus の代わりに statusStripMain を追加
             MinimumSize = new Size(900, 600);
             Name = "DetailForm";
             StartPosition = FormStartPosition.CenterParent;
             Text = "案件詳細";
             tabMain.ResumeLayout(false);
             pnlHeader.ResumeLayout(false);
+            statusStripMain.ResumeLayout(false);
+            statusStripMain.PerformLayout(); // 💡 ステータスバー用のレイアウト更新を追加
             ResumeLayout(false);
+            PerformLayout();
         }
 
         private void BuildTab1()

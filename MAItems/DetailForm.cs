@@ -752,108 +752,106 @@ namespace MAItems
             string mailBody = Clipboard.GetText();
             if (string.IsNullOrWhiteSpace(mailBody)) { SetStatus("⚠ クリップボードにテキストがありません", isError: true); return; }
 
-            // パーサーの取得・テキスト解析・Webスクレイピングを非同期実行
-            List<ParsedDeal> parsedList = await MailParserFactory.ParseAndEnrichAsync(mailBody);
+            // 💡 【追加1】処理開始時のUIロックとフィードバック
+            btnPasteFromMail.Enabled = false; // ボタンを無効化し、連打を完全に防止
+            this.UseWaitCursor = true;        // 画面全体のマウスカーソルを「砂時計（待機中）」に変更
+            SetStatus("⏳ メールの解析とWeb情報の取得を行っています... しばらくお待ちください", isError: false);
 
-            if (parsedList == null || parsedList.Count == 0)
+            try
             {
-                SetStatus("⚠ 対応する仲介会社のフォーマットが見つからないか、情報を抽出できませんでした", isError: true);
-                return;
-            }
+                // パーサーの取得・テキスト解析・Webスクレイピングを非同期実行
+                List<ParsedDeal> parsedList = await MailParserFactory.ParseAndEnrichAsync(mailBody);
 
-            // 💡 【修正】今回のメールに含まれる「案件IDのリスト」を作成
-            var mailDealIds = parsedList.Select(p => p.DealId ?? "").Where(id => id != "").Distinct().ToList();
-            string broker = parsedList[0].BrokerCompany ?? "";
-
-            // 💡 【修正】対象の仲介会社 ＆ 今回のメールにある案件ID のデータ「だけ」をDBから取得（超高速）
-            var existingDeals = _dealRepo.GetExistingDealsForImport(broker, mailDealIds);
-
-            // 1件目（単一案件含む）の重複チェック
-            var p0 = parsedList[0];
-            var existing0 = existingDeals.FirstOrDefault(d => d.DealId == p0.DealId);
-
-            // 既に登録されていて、かつ「今開いている画面の案件」とは別物だった場合
-            if (existing0 != null && existing0.Id != _deal.Id)
-            {
-                var res = MessageBox.Show(
-                    $"この案件（案件ID: {p0.DealId}）は既に登録されています。\n\n" +
-                    "既存の案件データを画面に呼び出して、メールの最新内容を反映させますか？\n" +
-                    "（「はい」を押すと、現在編集中の内容は保存して切り替わります）",
-                    "登録済み案件の確認",
-                    MessageBoxButtons.YesNo,
-                    MessageBoxIcon.Question);
-
-                if (res == DialogResult.Yes)
+                if (parsedList == null || parsedList.Count == 0)
                 {
-                    if (!SaveCurrentData()) return;
-                    _deal = existing0;
-                    LoadAll(); // 既存のデータを画面に展開
+                    SetStatus("⚠ 対応する仲介会社のフォーマットが見つからないか、情報を抽出できませんでした", isError: true);
+                    return;
                 }
-            }
 
-            // 1件目は現在の画面（テキストボックス）に適用する
-            ApplyParsedDeal(p0);
+                var mailDealIds = parsedList.Select(p => p.DealId ?? "").Where(id => id != "").Distinct().ToList();
+                string broker = parsedList[0].BrokerCompany ?? "";
 
-            // 2件目以降が存在する場合（複数案件のスマート・アップサート）
-            if (parsedList.Count > 1)
-            {
-                var confirm = MessageBox.Show(
-                    $"メールから {parsedList.Count} 件の案件が検出されました。\n\n" +
-                    "1件目を現在の画面に入力し、残りの案件をデータベースに自動取り込みしますか？",
-                    "複数案件の取り込み", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                var existingDeals = _dealRepo.GetExistingDealsForImport(broker, mailDealIds);
 
-                if (confirm == DialogResult.Yes)
+                var p0 = parsedList[0];
+                var existing0 = existingDeals.FirstOrDefault(d => d.DealId == p0.DealId);
+
+                if (existing0 != null && existing0.Id != _deal.Id)
                 {
-                    int addedCount = 0;
-                    int updatedCount = 0;
-                    int skippedCount = 0;
+                    var res = MessageBox.Show(
+                        $"この案件（案件ID: {p0.DealId}）は既に登録されています。\n\n" +
+                        "既存の案件データを画面に呼び出して、メールの最新内容を反映させますか？\n" +
+                        "（「はい」を押すと、現在編集中の内容は保存して切り替わります）",
+                        "登録済み案件の確認",
+                        MessageBoxButtons.YesNo,
+                        MessageBoxIcon.Question);
 
-                    for (int i = 1; i < parsedList.Count; i++)
+                    if (res == DialogResult.Yes)
                     {
-                        var p = parsedList[i];
-
-                        // DBからピンポイントで引いてきた existingDeals の中から探す
-                        var existing = existingDeals.FirstOrDefault(d => d.DealId == p.DealId);
-
-                        if (existing != null)
-                        {
-                            // 変更なしスキップ判定
-                            if (existing.Revenue == p.Revenue &&
-                                existing.OperatingProfit == p.OperatingProfit &&
-                                existing.EBITDA == p.EBITDA)
-                            {
-                                skippedCount++;
-                                continue;
-                            }
-
-                            // 上書き更新(Update)
-                            MapParsedToDeal(p, existing);
-                            _dealRepo.UpdateDeal(existing);
-                            updatedCount++;
-                        }
-                        else
-                        {
-                            // 新規追加(Insert)
-                            var newDeal = new Deal();
-                            MapParsedToDeal(p, newDeal);
-                            _dealRepo.AddDeal(newDeal);
-
-                            // 同じメール内に重複があった場合のためにリストに追加
-                            existingDeals.Add(newDeal);
-
-                            addedCount++;
-                        }
+                        if (!SaveCurrentData()) return;
+                        _deal = existing0;
+                        LoadAll();
                     }
-                    SetStatus($"✔ 1件目を画面に反映。その他: 追加 {addedCount}件 / 更新 {updatedCount}件 / スキップ {skippedCount}件", false);
+                }
+
+                ApplyParsedDeal(p0);
+
+                if (parsedList.Count > 1)
+                {
+                    var confirm = MessageBox.Show(
+                        $"メールから {parsedList.Count} 件の案件が検出されました。\n\n" +
+                        "1件目を現在の画面に入力し、残りの案件をデータベースに自動取り込みしますか？",
+                        "複数案件の取り込み", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+                    if (confirm == DialogResult.Yes)
+                    {
+                        int addedCount = 0; int updatedCount = 0; int skippedCount = 0;
+
+                        for (int i = 1; i < parsedList.Count; i++)
+                        {
+                            var p = parsedList[i];
+                            var existing = existingDeals.FirstOrDefault(d => d.DealId == p.DealId);
+
+                            if (existing != null)
+                            {
+                                if (existing.Revenue == p.Revenue &&
+                                    existing.OperatingProfit == p.OperatingProfit &&
+                                    existing.EBITDA == p.EBITDA)
+                                {
+                                    skippedCount++;
+                                    continue;
+                                }
+
+                                MapParsedToDeal(p, existing);
+                                _dealRepo.UpdateDeal(existing);
+                                updatedCount++;
+                            }
+                            else
+                            {
+                                var newDeal = new Deal();
+                                MapParsedToDeal(p, newDeal);
+                                _dealRepo.AddDeal(newDeal);
+                                existingDeals.Add(newDeal);
+                                addedCount++;
+                            }
+                        }
+                        SetStatus($"✔ 1件目を画面に反映。その他: 追加 {addedCount}件 / 更新 {updatedCount}件 / スキップ {skippedCount}件", false);
+                    }
+                    else
+                    {
+                        SetStatus("✔ 1件目のみを画面に入力しました", false);
+                    }
                 }
                 else
                 {
-                    SetStatus("✔ 1件目のみを画面に入力しました", false);
+                    SetStatus($"✔ メール本文を取り込みました（{p0.BrokerCompany}）", false);
                 }
             }
-            else
+            finally
             {
-                SetStatus($"✔ メール本文を取り込みました（{p0.BrokerCompany}）", false);
+                // 💡 【追加2】処理完了後（もしくはエラー発生時）の確実なUI復元
+                btnPasteFromMail.Enabled = true; // ボタンを再度押せるようにする
+                this.UseWaitCursor = false;      // カーソルを通常に戻す
             }
         }
 
@@ -1202,6 +1200,12 @@ namespace MAItems
         {
             lblStatus.ForeColor = isError ? Color.Red : Color.DarkGreen;
             lblStatus.Text = msg;
+
+
+            if (statusStripMain != null)
+            {
+                statusStripMain.Refresh();
+            }
         }
 
         #endregion
