@@ -794,6 +794,7 @@ namespace MAItems
                     }
                 }
 
+                bool isUpdate0 = _deal.Id > 0;
                 ApplyParsedDeal(p0);
 
                 if (parsedList.Count > 1)
@@ -822,14 +823,14 @@ namespace MAItems
                                     continue;
                                 }
 
-                                MapParsedToDeal(p, existing);
+                                MapParsedToDeal(p, existing, true);
                                 _dealRepo.UpdateDeal(existing);
                                 updatedCount++;
                             }
                             else
                             {
                                 var newDeal = new Deal();
-                                MapParsedToDeal(p, newDeal);
+                                MapParsedToDeal(p, newDeal, false);
                                 _dealRepo.AddDeal(newDeal);
                                 existingDeals.Add(newDeal);
                                 addedCount++;
@@ -855,9 +856,9 @@ namespace MAItems
             }
         }
 
-        private void ApplyParsedDeal(ParsedDeal parsed)
+        private void ApplyParsedDeal(ParsedDeal parsed, bool isUpdate = false)
         {
-            if (parsed.InputDate != null)
+            if (!isUpdate && parsed.InputDate != null)
             {
                 if (DateTime.TryParse(parsed.InputDate, out var parsedDate))
                     txtInputDate.Text = parsedDate.ToString("yyyy/MM/dd");
@@ -890,15 +891,18 @@ namespace MAItems
         /// <summary>
         /// メール解析結果をデータベース用のDealモデルに詰め替えます（日付の正規化対応済）
         /// </summary>
-        private void MapParsedToDeal(ParsedDeal p, Deal deal)
+        private void MapParsedToDeal(ParsedDeal p, Deal deal, bool isUpdate = false)
         {
-            if (!string.IsNullOrWhiteSpace(p.InputDate) && DateTime.TryParse(p.InputDate, out var parsedDate))
+            if (!isUpdate)
             {
-                deal.InputDate = parsedDate.ToString("yyyy/MM/dd");
-            }
-            else
-            {
-                deal.InputDate = p.InputDate ?? "";
+                if (!string.IsNullOrWhiteSpace(p.InputDate) && DateTime.TryParse(p.InputDate, out var parsedDate))
+                {
+                    deal.InputDate = parsedDate.ToString("yyyy/MM/dd");
+                }
+                else
+                {
+                    deal.InputDate = p.InputDate ?? "";
+                }
             }
 
             deal.Route = p.Route ?? "";
