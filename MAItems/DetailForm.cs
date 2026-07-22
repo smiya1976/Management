@@ -17,6 +17,7 @@ namespace MAItems
         private readonly AttachmentRepository _attachmentRepo;
         private Deal _deal;
         private DatabaseContext _context;
+        private List<long> _orderedDealIds = new List<long>();
 
         // 各タブで管理する拡張データ
         private CompanyProfile _profile = new();
@@ -32,7 +33,7 @@ namespace MAItems
 
         #region コンストラクタ・初期化
 
-        public DetailForm(Deal deal, DatabaseContext context)
+        public DetailForm(Deal deal, DatabaseContext context, List<long>? orderedDealIds = null)
         {
             InitializeComponent();
             BuildTab1();
@@ -45,6 +46,7 @@ namespace MAItems
 
             _deal = deal;
             _context = context;
+            _orderedDealIds = orderedDealIds ?? new List<long> { deal.Id };
 
             // それぞれの専門リポジトリを生成
             _dealRepo = new DealRepository(context);
@@ -80,11 +82,13 @@ namespace MAItems
         /// </summary>
         private void UpdateNavigationButtons()
         {
-            var allDeals = _dealRepo.GetAllDeals().OrderBy(d => d.Id).ToList();
-            int idx = allDeals.FindIndex(d => d.Id == _deal.Id);
+            // 💡 修正: 渡されたリストの中で、現在の案件が何番目にあるかを確認
+            int idx = _orderedDealIds.IndexOf(_deal.Id);
 
+            // リストの先頭でなければ「前へ」を有効化
             btnPrev.Enabled = (idx > 0);
 
+            // 「次へ」は新規追加を許容するため常に有効
             btnNext.Enabled = true;
         }
 
@@ -104,30 +108,31 @@ namespace MAItems
         /// </summary>
         private void NavigateTo(int direction)
         {
-            // 移動する前に、現在の入力内容を自動保存する
-            if (!SaveCurrentData())
-            {
-                // 保存エラー時は移動をキャンセル
-                return;
-            }
+            if (!SaveCurrentData()) return;
 
-            // 💡 修正: 取得時に必ずID順（登録順）に並び替えてからリスト化する
-            var allDeals = _dealRepo.GetAllDeals().OrderBy(d => d.Id).ToList();
-            int idx = allDeals.FindIndex(d => d.Id == _deal.Id);
+            // 💡 修正: _orderedDealIds を基準にして次の案件を探す
+            int idx = _orderedDealIds.IndexOf(_deal.Id);
             if (idx == -1) return;
 
             int newIdx = idx + direction;
 
-            if (newIdx >= 0 && newIdx < allDeals.Count)
+            // リストの範囲内を移動する場合
+            if (newIdx >= 0 && newIdx < _orderedDealIds.Count)
             {
-                // 新しい案件に入れ替えて全体を再読み込み
-                _deal = allDeals[newIdx];
-                LoadAll();
-                SetStatus($"✔ 変更を保存し、案件 ID: {_deal.Id} を読み込みました", isError: false);
+                long nextId = _orderedDealIds[newIdx];
+
+                // 次のIDの案件をDBから取得する
+                var nextDeal = _dealRepo.GetAllDeals().Find(d => d.Id == nextId);
+                if (nextDeal != null)
+                {
+                    _deal = nextDeal;
+                    LoadAll();
+                    SetStatus($"✔ 変更を保存し、案件 ID: {_deal.Id} を読み込みました", isError: false);
+                }
             }
-            else if (newIdx == allDeals.Count)
+            // リストの最後からさらに「次へ」を押した場合（新規追加）
+            else if (newIdx == _orderedDealIds.Count && direction > 0)
             {
-                // 最後のレコードからさらに「次へ」移動しようとした場合
                 var confirm = MessageBox.Show(
                     "最後の案件です。新しく案件を追加しますか？",
                     "新規追加の確認",
@@ -136,10 +141,11 @@ namespace MAItems
 
                 if (confirm == DialogResult.Yes)
                 {
-                    // データベースに空の新規案件を追加してIDを取得
                     long newId = _dealRepo.AddEmptyDeal();
 
-                    // 追加した新しい案件データを取得して入れ替える
+                    // 💡 新規追加した案件のIDも並び順リストの最後に追加しておく（戻れるようにするため）
+                    _orderedDealIds.Add(newId);
+
                     var newDeal = _dealRepo.GetAllDeals().Find(d => d.Id == newId);
                     if (newDeal != null)
                     {
@@ -795,7 +801,7 @@ namespace MAItems
                 }
 
                 bool isUpdate0 = _deal.Id > 0;
-                ApplyParsedDeal(p0);
+                ApplyParsedDeal(p0, isUpdate0);
 
                 if (parsedList.Count > 1)
                 {

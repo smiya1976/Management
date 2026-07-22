@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "MAItems": {
+      "commandName": "Project",
+      "workingDirectory": "N:\\smiyazaki\\source\\repos\\Management\\MAItems\\bin\\Debug",
+      "debugEngines": "managed,native"
+    }
+  }
+}

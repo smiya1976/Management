@@ -480,13 +480,23 @@ namespace MAItems
                 return;
             }
 
+            // 💡 追加: 現在DataGridViewに表示されている順番通りにIDを抽出してリスト化する
+            List<long> currentOrderedIds = new List<long>();
+            foreach (DataGridViewRow row in dgvData.Rows)
+            {
+                if (row.DataBoundItem is Deal d)
+                {
+                    currentOrderedIds.Add(d.Id);
+                }
+            }
+
             // 💡 ① 詳細画面を開く前にメイン画面を非表示にする
             this.Hide();
 
-            // フォームを生成（using で囲むことで、閉じられた後に安全にメモリから解放されます）
-            using (var detailForm = new DetailForm(deal, _context))
+            // 💡 修正: 第3引数にリスト（currentOrderedIds）を渡して詳細画面を開く
+            using (var detailForm = new DetailForm(deal, _context, currentOrderedIds))
             {
-                // 保存完了時のイベント登録（元のコードのまま）
+                // 保存完了時のイベント登録
                 detailForm.SaveCompleted += (s, ev)
                     => LoadData(txtSearch.Text.Trim());
 
